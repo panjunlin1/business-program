@@ -7,6 +7,12 @@
 			}
 		},
 		{
+			"path": "pages/index/login",
+			"style": {
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
 			"path": "pages/order/order",
 			"style": {
 				"navigationBarTitleText": "订单"

@@ -1,147 +1,60 @@
 <template>
-  <div class="merchant-container">
-
-    <!-- 核心信息区 -->
-    <div class="card-container">
-      <div class="info-card">
-        <!-- 头像 + 店名 + ID 区域 -->
-        <div class="profile-section">
-          <image class="avatar" :src="avatarUrl"></image>
-          <div class="text-group">
-            <text class="shop-name">{{ shopName }}</text>
-            <text class="shop-id">{{ shopId }}</text>
-          </div>
-        </div>
-
-        <!-- 修改按钮（右上角） -->
-        <button class="edit-btn" @click="handleEdit">修改</button>
-
-        <!-- 商家信息 -->
-        <div class="bottom-section">
-          <text>商家地址：{{ merchantAddress }}</text>
-          <text>商家联系方式：{{ merchantContact }}</text>
-          <text>店的开业时间：{{ openingTime }}</text>
-        </div>
-      </div>
+  <div class="my-page">
+    <h1 class="page-title">用户信息</h1>
+    <div v-if="userEntity">
+      <p>店铺名称: {{ userEntity.shopName }}</p>
+      <p>地址: {{ userEntity.address }}</p>
+      <p>手机号: {{ userEntity.phone }}</p>
+      <p>创建时间: {{ userEntity.createTime }}</p>
+      <p>激活状态: {{ userEntity.isActive === 0 ? '未激活' : '已激活' }}</p>
     </div>
-
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
+// 从 @dcloudio/uni-app 导入 onShow 和 onLoad
+import { onShow, onLoad } from '@dcloudio/uni-app';
 
-// 模拟数据
-const avatarUrl = ref('https://example.com/avatar.png'); // 头像地址
-const shopName = ref('示例店名');
-const shopId = ref('店的 ID 编码：SHOP123456');
-const merchantAddress = ref('示例街道 123 号');
-const merchantContact = ref('13800138000');
-const openingTime = ref('2020-01-01');
+const userEntity = ref(null);
 
-// 修改按钮点击事件
-const handleEdit = () => {
-  uni.navigateTo({ url: '/pages/merchant-edit/merchant-edit' });
-};
+// 页面加载时读取数据
+onLoad(() => {
+  try {
+    const storedUserEntity = uni.getStorageSync('userEntity');
+    if (storedUserEntity) {
+      userEntity.value = storedUserEntity;
+    }
+  } catch (error) {
+    console.error('读取 userEntity 数据失败:', error);
+  }
+});
+
+// 页面显示时重新读取数据
+onShow(() => {
+  try {
+    const storedUserEntity = uni.getStorageSync('userEntity');
+    if (storedUserEntity) {
+      userEntity.value = storedUserEntity;
+    }
+  } catch (error) {
+    console.error('重新读取 userEntity 数据失败:', error);
+  }
+});
 </script>
 
 <style scoped>
-/* 页面容器 */
-.merchant-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #fff;
+.my-page {
+  padding: 20px;
 }
-
-/* 顶部标题栏 */
-.menu text {
-  font-size: 20px;
-  color: #999;
-}
-
-/* 核心信息区 */
-.card-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  width: 100%;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-.info-card {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-/* 头像 + 店名 + ID 区域 */
-.profile-section {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  margin-right: 12px;
-}
-.text-group {
-  display: flex;
-  flex-direction: column;
-}
-.shop-name {
-  font-size: 18px;
-  font-weight: bold;
+/* 使用 class 选择器替换 h1 标签选择器 */
+.page-title {
+  text-align: center;
   color: #333;
-  margin-bottom: 4px;
 }
-.shop-id {
-  font-size: 14px;
+.my-page p {
+  font-size: 16px;
   color: #666;
-}
-
-/* 修改按钮（右上角） */
-.edit-btn {
-  height: 40px;
-  width: 60px;
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 14px;
-}
-
-/* 商家信息区域 */
-.bottom-section {
-  border-top: 1px solid #eee;
-  padding-top: 12px;
-}
-.bottom-section text {
-  display: block;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 6px;
-  line-height: 1.6;
-}
-
-.tab-item text {
-  font-size: 12px;
-  color: #999;
-  margin-top: 2px;
-}
-.active text {
-  color: #ff5722; /* 选中态颜色 */
+  margin-bottom: 10px;
 }
 </style>

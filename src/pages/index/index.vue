@@ -16,9 +16,13 @@
     </div>
 
     <!-- 用户信息与登录区域 -->
-    <div class="login-container">
+    <div v-if="!userEntity" class="login-container">
       <text class="login-text">用户名</text>
       <button class="login-button" @click="handleButtonClick">登录</button>
+    </div>
+    <div v-else class="login-container">
+      <text class="login-text">店铺名称: {{ userEntity.shopName }}</text>
+      <text class="login-text">地址: {{ userEntity.address }}</text>
     </div>
 
     <!-- 四宫格功能按钮区域 -->
@@ -88,68 +92,75 @@ export default {
     }
   }
 }
-
 </script>
 
-
 <script setup>
-// 引入路由相关（假设使用vue-router）
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
+// 从 @dcloudio/uni-app 导入 onShow
+import { onShow } from '@dcloudio/uni-app';
 
 const router = useRouter();
-
-// 存储当前被按下的按钮ID
 const activeButton = ref(null);
+const userEntity = ref(null);
 
-// 触摸开始 - 记录按钮ID
+// 触摸相关方法
 const handleTouchStart = (buttonId) => {
   activeButton.value = buttonId;
 };
 
-// 触摸结束 - 清除按钮ID
 const handleTouchEnd = () => {
   activeButton.value = null;
 };
 
-// 触摸取消 - 清除按钮ID（处理边缘情况）
 const handleTouchCancel = () => {
   activeButton.value = null;
 };
 
 // 登录按钮点击处理
 const handleButtonClick = () => {
-  router.push('/login');
+  uni.navigateTo({
+    url: '/pages/index/login'
+  });
 };
 
-// 比如在某个按钮的点击事件中
+// 页面显示时检查 userEntity
+onShow(() => {
+  try {
+    const storedUserEntity = uni.getStorageSync('userEntity');
+    if (storedUserEntity) {
+      userEntity.value = storedUserEntity;
+    }
+  } catch (error) {
+    console.error('读取 userEntity 数据失败:', error);
+  }
+});
+
+// 页面跳转方法
 const goToMaterialSelect = () => {
   uni.navigateTo({
-    url: '/pages/MaterialSelect/MaterialSelect' // 对应 pages.json 中的路径，需配置
+    url: '/pages/MaterialSelect/MaterialSelect'
   });
 };
 
 const navigateToDineIn = () => {
   uni.navigateTo({
-    url: '/pages/new_dishes/new_dishes' // 对应 pages.json 中的路径，需配置
+    url: '/pages/new_dishes/new_dishes'
   });
 };
 
-
 const navigateToDelivery = () => {
   uni.navigateTo({
-    url: '' // 对应 pages.json 中的路径，需配置
+    url: ''
   });
 };
 
 const navigateToRecharge = () => {
   uni.navigateTo({
-    url: '/pages/income/income' // 对应 pages.json 中的路径，需配置
+    url: '/pages/income/income'
   });
 };
-
 </script>
-
 
 <style>
 .uni-margin-wrap {
