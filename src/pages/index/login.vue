@@ -188,6 +188,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
             key: "userEntity",
             data: res.data.data,
             success: () => {
+              console.log(res.data)
               console.log('userEntity 存储成功');
               // 使用 uni.switchTab 跳转到 TabBar 页面
               uni.switchTab({

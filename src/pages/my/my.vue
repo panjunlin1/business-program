@@ -2,11 +2,11 @@
   <div class="my-page">
     <h1 class="page-title">用户信息</h1>
     <div v-if="userEntity">
-      <p>店铺名称: {{ userEntity.shopName }}</p>
-      <p>地址: {{ userEntity.address }}</p>
-      <p>手机号: {{ userEntity.phone }}</p>
-      <p>创建时间: {{ userEntity.createTime }}</p>
-      <p>激活状态: {{ userEntity.isActive === 0 ? '未激活' : '已激活' }}</p>
+      <p>店铺名称: {{ userEntity.shop.shopName }}</p>
+      <p>地址: {{ userEntity.shop.address }}</p>
+      <p>手机号: {{ userEntity.shop.phone }}</p>
+      <p>创建时间: {{ userEntity.shop.createTime }}</p>
+      <p>激活状态: {{ userEntity.shop.isActive === 0 ? '未激活' : '已激活' }}</p>
     </div>
   </div>
 </template>

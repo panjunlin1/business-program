@@ -17,12 +17,12 @@
 
     <!-- 用户信息与登录区域 -->
     <div v-if="!userEntity" class="login-container">
-      <text class="login-text">用户名</text>
+      <text class="login-text-a">用户名</text>
       <button class="login-button" @click="handleButtonClick">登录</button>
     </div>
     <div v-else class="login-container">
-      <text class="login-text">店铺名称: {{ userEntity.shopName }}</text>
-      <text class="login-text">地址: {{ userEntity.address }}</text>
+      <text class="login-text">{{ userEntity.shop.shopName }}</text>
+
     </div>
 
     <!-- 四宫格功能按钮区域 -->
@@ -191,11 +191,16 @@ const navigateToRecharge = () => {
   position: relative; /* 为子元素的绝对定位提供参考 */
 }
 
-.login-text {
+.login-text-a {
   font-size: 28rpx;
   position: absolute; /* 绝对定位 */
   left: 25%; /* 右侧四分之一位置 */
   transform: translateX(50%); /* 微调，使其居中 */
+}
+
+.login-text {
+  font-size: 28px;
+  transform: translateX(80%);
 }
 
 .login-button {
