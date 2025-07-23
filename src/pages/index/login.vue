@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-
+import { baseUrl } from '@/router';
 // 定义响应式数据
 const openid = ref("");
 const loginstate = ref("0");
@@ -40,7 +40,7 @@ const osVersion = ref("");
 const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
-const baseUrl = 'https://11kx146lc0484.vicp.fun/shop';
+// const baseUrl = 'https://11kx146lc0484.vicp.fun/shop';
 
 // 加载存储数据
 const loadStorageData = async () => {

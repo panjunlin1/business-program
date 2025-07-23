@@ -2,6 +2,9 @@ import {createMemoryHistory, createRouter} from 'vue-router';
 import OrderDetails from '@/pages/OrderDetails/OrderDetails.vue';
 import OrderList from '../pages/order/order.vue'; // 假设订单列表组件路径
 
+// 定义 API 基础 URL
+const baseUrl = 'https://11kx146lc0484.vicp.fun/shop';
+
 
 const routes = [
     {
@@ -42,5 +45,6 @@ router.beforeEach((to, from, next) => {
 router.afterEach((to, from) => {
     console.log('导航守卫 - 完成:', from.path, '->', to.path);
 });
-
+// 导出 baseUrl
+export { baseUrl };
 export default router;
