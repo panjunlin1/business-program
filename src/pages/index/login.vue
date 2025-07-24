@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import {baseUrl} from "@/router";
 
 // 定义响应式数据
 const openid = ref("");
@@ -40,7 +41,7 @@ const osVersion = ref("");
 const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
-const baseUrl = 'https://111aaxw452820.vicp.fun/shop';
+
 
 // 加载存储数据
 const loadStorageData = async () => {
@@ -170,7 +171,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
     };
 
     uni.request({
-      url: baseUrl + '/login',
+      url: baseUrl + '/shop/login',
       method: 'POST',
       data: requestData,
       success: (res) => {
