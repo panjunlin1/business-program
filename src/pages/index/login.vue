@@ -40,7 +40,7 @@ const osVersion = ref("");
 const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
-import { baseUrl } from '@/router';
+const baseUrl = 'https://111aaxw452820.vicp.fun/shop';
 
 // 加载存储数据
 const loadStorageData = async () => {
@@ -170,7 +170,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
     };
 
     uni.request({
-      url: baseUrl + '/shop/login',
+      url: baseUrl + '/login',
       method: 'POST',
       data: requestData,
       success: (res) => {
