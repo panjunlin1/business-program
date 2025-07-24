@@ -13,19 +13,19 @@
       <div class="order-f1">
         <div class="data-pair">
           <span class="label">ID：</span>
-          <span class="span">{{ order.id }}</span>
+          <span class="span">{{ order.shopid }}</span>
         </div>
         <div class="data-pair">
           <span class="label">订单号：</span>
-          <span class="span">{{ order.orderId }}</span>
+          <span class="span">{{ order.id }}</span>
         </div>
         <div class="data-pair">
           <span class="label">联系电话：</span>
-          <span class="span">{{ order.phone }}</span>
+          <span class="span">{{ order.phoneNum }}</span>
         </div>
         <div class="data-pair">
           <span class="label">下单时间：</span>
-          <span class="span time-text">{{ order.orderTime }}</span>
+          <span class="span time-text">{{ order.ordertime }}</span>
         </div>
       </div>
       <div class="order-f1">
@@ -45,11 +45,11 @@
         </div>
         <div class="data-pair">
           <span class="label">支付方式：</span>
-          <span class="span">{{ order.paymentMethod }}</span>
+          <span class="span">{{ order.paymentmethod }}</span>
         </div>
         <div class="data-pair">
           <span class="label">总价：</span>
-          <span class="span">{{ order.totalPrice }}</span>
+          <span class="span">{{ order.totalprice }}</span>
         </div>
       </div>
     </div>
@@ -58,51 +58,59 @@
 
 
 <script setup>
-import {computed, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
+import {baseUrl} from "@/router";
 
-// 模拟订单数据数组，实际应用中从后端接口获取
-const orders = ref([
-  {
-    id: '897894261',
-    status: '6',
-    orderId: '#12366',
-    diningChoice: '外卖',
-    orderTime: '2025-10-11 20:00:00',
-    totalPrice: '100.00￥',
-    phone: '147258369',
-    paymentMethod: '支付宝'
-  },
-  {
-    id: '123456554',
-    status: '2',
-    orderId: 'ORD002',
-    diningChoice: '堂食',
-    orderTime: '2023-10-01 12:00:00',
-    totalPrice: '50.00￥',
-    phone: '123456789',
-    paymentMethod: '微信'
-  },
-  {
-    id: '564641589',
-    status: '4',
-    orderId: 'ORD003',
-    diningChoice: '自提',
-    orderTime: '2023-10-01 12:00:00',
-    totalPrice: '70.00￥',
-    phone: '963852741',
-    paymentMethod: '微信'
-  },
-  {
-    id: '4516158',
-    status: '5',
-    orderId: 'ORD004',
-    diningChoice: '自提',
-    orderTime: '2023-10-01 12:00:00',
-    totalPrice: '55.00￥',
-    phone: '651694815',
-    paymentMethod: '支付宝'
+const request = (url, method = 'GET', data = {}) => {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url,
+      method,
+      data,
+      header: {
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.data.code === 200) {
+          resolve(res.data.data); // 只返回数据部分
+          console.log("aaaaa:",res.data.data);
+        } else {
+          reject(new Error(res.data.msg || '请求失败'));
+        }
+      },
+      fail: (err) => reject(new Error('网络请求失败：' + err.errMsg))
+    });
+  });
+};
+
+// 2. 定义获取订单列表的方法
+const getOrderList = () => {
+  // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
+  return request(`${baseUrl}/api/orders`);
+};
+
+// 3. 初始化订单数据（空数组）
+const orders = ref([]);
+const loading = ref(false); // 加载状态
+const error = ref(''); // 错误信息
+
+
+// 4. 组件挂载时获取订单数据
+onMounted(async () => {
+  try {
+    loading.value = true;
+    const data = await getOrderList();
+    // 遍历订单，把 status 转成字符串
+    orders.value = data.map(order => ({
+      ...order,
+      status: order.status + '' // 数字转字符串，确保和 statusMap 键类型一致
+    }));
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
   }
-]);
+});
 
 // 接收通过事件绑定从DOM元素传递来的orderId参数
 // 使用APP框架的导航API（uni-app为例）
@@ -143,7 +151,8 @@ const getStatusText = (status) => {
 
 //
 // 使用 Vue 3 的 Composition API 定义方法
-const currentStatus = ref('');
+const currentStatus = ref();
+
 const a1 = () => {
   console.log('点击了"全部"按钮');
   currentStatus.value = '';

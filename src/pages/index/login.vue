@@ -40,7 +40,7 @@ const osVersion = ref("");
 const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
-const baseUrl = 'https://111aaxw452820.vicp.fun/shop';
+import { baseUrl } from '@/router';
 
 // 加载存储数据
 const loadStorageData = async () => {
@@ -170,7 +170,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
     };
 
     uni.request({
-      url: baseUrl + '/login',
+      url: baseUrl + '/shop/login',
       method: 'POST',
       data: requestData,
       success: (res) => {
@@ -252,18 +252,17 @@ const getPhoneNumber = async (e: any) => {
     const getOpenIdAndSessionKey = async () => {
       const loginRes = await uni.login();
       const getOpenIdData = {
-        account: '',
-        jscode: loginRes.code
+        code: loginRes.code
       };
-      console.log('发送到后端的获取 openid 数据:', getOpenIdData);
+      console.log('发送到后端的 openid 数据:', getOpenIdData);
       return new Promise<{ openid: string; sessionkey: string }>((resolve, reject) => {
         uni.request({
-          url: baseUrl + '/getopenid',
+          url: baseUrl + '/shop/getopenid',
           method: 'POST',
           data: getOpenIdData,
           success: (authRes) => {
             // 打印完整响应数据
-            console.log('后端返回的获取 openid 响应数据:', authRes.data);
+            console.log('后端返回的 openid 响应数据:', authRes.data);
             if (
               typeof authRes.data === 'object' &&
               authRes.data !== null &&
@@ -299,7 +298,7 @@ const getPhoneNumber = async (e: any) => {
       console.log('发送到后端的获取手机号数据:', getPhoneData);
       return new Promise<string>((resolve, reject) => {
         uni.request({
-          url: baseUrl + '/getphone',
+          url: baseUrl + '/shop/getphone',
           method: 'POST',
           data: getPhoneData,
           success: (decryptRes) => {
