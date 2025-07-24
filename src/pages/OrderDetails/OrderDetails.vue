@@ -5,19 +5,19 @@
       <div class="order-f1">
         <div class="data-pair">
           <span class="label">ID：</span>
-          <span class="span">{{ order.id }}</span>
+          <span class="span">{{ order.shopid }}</span>
         </div>
         <div class="data-pair">
           <span class="label">订单号：</span>
-          <span class="span">{{ order.orderId }}</span>
+          <span class="span">{{ order.id }}</span>
         </div>
         <div class="data-pair">
           <span class="label">联系电话：</span>
-          <span class="span">{{ order.phone }}</span>
+          <span class="span">{{ order.phoneNum }}</span>
         </div>
         <div class="data-pair">
           <span class="label">下单时间：</span>
-          <span class="span time-text">{{ order.orderTime }}</span>
+          <span class="span time-text">{{ order.ordertime }}</span>
         </div>
       </div>
       <div class="order-f1">
@@ -37,11 +37,11 @@
         </div>
         <div class="data-pair">
           <span class="label">支付方式：</span>
-          <span class="span">{{ order.paymentMethod }}</span>
+          <span class="span">{{ order.paymentmethod }}</span>
         </div>
         <div class="data-pair">
           <span class="label">总价：</span>
-          <span class="span totalPrice-tag">{{ order.totalPrice }}</span>
+          <span class="span totalPrice-tag">{{ order.totalprice }}</span>
         </div>
       </div>
     </div>
@@ -67,7 +67,7 @@
       </div>
       <div class="order-info-item">
         <span class="info-label">联系电话：</span>
-        <span class="info-value">{{ order.phone }}</span>
+        <span class="info-value">{{ order.phoneNum }}</span>
       </div>
       <div class="order-info-item">
         <span class="info-label">收货地址：</span>
@@ -78,49 +78,100 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import {ref} from 'vue';
 import { onLoad } from "@dcloudio/uni-app";
+import {baseUrl} from "@/router";
 
-const order = ref({
-  id: '',
-  status: '',
-  diningChoice: '',
-  orderTime: '',
-  totalPrice: '',
-  products: [],
-  userName: '',
-  phone: '',
-  address: '',
-  paymentMethod: ''
-});
+const order = ref({});
+// 加载状态
+const loading = ref(false);
+// 错误信息
+const error = ref('');
 
-onLoad((options) => {
+const request = (url, method = 'GET', data = {}) => {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url,
+      method,
+      data,
+      header: {
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.data.code === 200) {
+          resolve(res.data.data); // 只返回数据部分
+          console.log("aaaaa:",res.data.data);
+        } else {
+          reject(new Error(res.data.msg || '请求失败'));
+        }
+      },
+      fail: (err) => reject(new Error('网络请求失败：' + err.errMsg))
+    });
+  });
+};
+
+// 2. 定义获取订单列表的方法
+const getOrderById = (orderId) => {
+  // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
+  return request(`${baseUrl}/api/orders/${orderId}`);
+};
+
+onLoad(async (options) => {
   const orderId = options.orderId;
-  console.log('详情页接收的orderId:', orderId);
+  if (!orderId) {
+    error.value = '订单ID不存在';
+    return;
+  }
 
-  // 模拟异步获取完整订单数据
-  setTimeout(() => {
+  try {
+    loading.value = true;
+    const data = await getOrderById(orderId); // data是数组：[{id:1, ...}]
+
+    // 兼容数组格式：取第一个元素
+    const orderData = Array.isArray(data) ? data[0] : data;
+
+    // 处理状态（确保orderData存在）
     order.value = {
-      id: orderId,
-      status: '4',
-      orderId: 'ORD004',
-      diningChoice: '堂食',
-      orderTime: '2023-10-01 12:00:00',
-      totalPrice: '106.00',
-      // 商品列表数据
-      products: [
-        { name: '牛蛙火锅', quantity: 1, price: 100 },
-        { name: '青菜', quantity: 1, price: 2 },
-        { name: '火腿肠', quantity: 2, price: 4 }
-      ],
-      // 用户信息
-      userName: '张三',
-      phone: '13800138000',
-      address: 'XX市XX区XX街道123号',
-      paymentMethod: '微信支付'
+      ...orderData,
+      status: orderData ? (orderData.status + '') : '' // 避免orderData为undefined
     };
-  }, 1000);
+
+    console.log('修正后的数据：', order.value); // 此时应显示正确的订单对象
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
 });
+
+
+// onLoad((options) => {
+//   const orderId = options.orderId;
+//   console.log('详情页接收的orderId:', orderId);
+//
+//   // // 模拟异步获取完整订单数据
+//   // setTimeout(() => {
+//   //   order.value = {
+//   //     id: orderId,
+//   //     status: '4',
+//   //     orderId: 'ORD004',
+//   //     diningChoice: '堂食',
+//   //     orderTime: '2023-10-01 12:00:00',
+//   //     totalPrice: '106.00',
+//   //     // 商品列表数据
+//   //     products: [
+//   //       { name: '牛蛙火锅', quantity: 1, price: 100 },
+//   //       { name: '青菜', quantity: 1, price: 2 },
+//   //       { name: '火腿肠', quantity: 2, price: 4 }
+//   //     ],
+//   //     // 用户信息
+//   //     userName: '张三',
+//   //     phone: '13800138000',
+//   //     address: 'XX市XX区XX街道123号',
+//   //     paymentMethod: '微信支付'
+//   //   };
+//   // }, 1000);
+// });
 
 const statusMap = {
   '2': '已接取',

@@ -30,7 +30,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { baseUrl } from '@/router';
+import {baseUrl} from "@/router";
+
 // 定义响应式数据
 const openid = ref("");
 const loginstate = ref("0");
@@ -40,7 +41,7 @@ const osVersion = ref("");
 const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
-// const baseUrl = 'https://11kx146lc0484.vicp.fun/shop';
+
 
 // 加载存储数据
 const loadStorageData = async () => {
@@ -170,7 +171,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
     };
 
     uni.request({
-      url: baseUrl + '/login',
+      url: baseUrl + '/shop/login',
       method: 'POST',
       data: requestData,
       success: (res) => {
@@ -250,57 +251,42 @@ const getPhoneNumber = async (e: any) => {
 
     // 封装获取 openid 和 sessionkey 的逻辑
     const getOpenIdAndSessionKey = async () => {
-      try {
-        const loginRes = await uni.login();
-        console.log('uni.login() 返回结果:', loginRes);
-        if (!loginRes.code) {
-          console.error('获取 jscode 失败，返回结果:', loginRes);
-          throw new Error('获取 jscode 失败');
-        }
-        const account = uni.getStorageSync('account') || '';
-        const getOpenIdData = {
-          account: account,
-          code: loginRes.code
-        };
-        const requestUrl = baseUrl + '/getopenid';
-        console.log('即将发送获取 openid 请求，URL:', requestUrl);
-        console.log('发送到后端的获取 openid 数据:', getOpenIdData);
-
-        return new Promise<{ openid: string; sessionkey: string }>((resolve, reject) => {
-          uni.request({
-            url: requestUrl,
-            method: 'POST',
-            data: getOpenIdData,
-            success: (authRes) => {
-              console.log('获取 openid 请求成功，响应数据:', authRes.data);
-              if (
-                typeof authRes.data === 'object' &&
-                authRes.data !== null &&
-                'code' in authRes.data &&
-                authRes.data.code === 200 &&
-                'data' in authRes.data &&
-                typeof authRes.data.data === 'object' &&
-                authRes.data.data !== null &&
-                'openid' in authRes.data.data &&
-                'sessionkey' in authRes.data.data
-              ) {
-                const openid = authRes.data.data.openid;
-                const sessionkey = authRes.data.data.sessionkey;
-                resolve({ openid, sessionkey });
-              } else {
-                reject(new Error('获取 openid 或 sessionkey 失败，响应数据不符合预期'));
-              }
-            },
-            fail: (error) => {
-              console.error('获取 openid 请求失败，错误信息:', error);
-              reject(new Error('获取登录凭证失败: ' + error.errMsg));
+      const loginRes = await uni.login();
+      const getOpenIdData = {
+        code: loginRes.code
+      };
+      console.log('发送到后端的 openid 数据:', getOpenIdData);
+      return new Promise<{ openid: string; sessionkey: string }>((resolve, reject) => {
+        uni.request({
+          url: baseUrl + '/shop/getopenid',
+          method: 'POST',
+          data: getOpenIdData,
+          success: (authRes) => {
+            // 打印完整响应数据
+            console.log('后端返回的 openid 响应数据:', authRes.data);
+            if (
+              typeof authRes.data === 'object' &&
+              authRes.data !== null &&
+              'code' in authRes.data &&
+              authRes.data.code === 200 &&
+              'data' in authRes.data &&
+              typeof authRes.data.data === 'object' &&
+              authRes.data.data !== null &&
+              'openid' in authRes.data.data &&
+              'sessionkey' in authRes.data.data
+            ) {
+              const openid = authRes.data.data.openid;
+              const sessionkey = authRes.data.data.sessionkey;
+              resolve({ openid, sessionkey });
+            } else {
+              reject(new Error('获取 openid 或 sessionkey 失败'));
             }
-          });
+          },
+          fail: (error) => {
+            reject(new Error('获取登录凭证失败: ' + error.errMsg));
+          }
         });
-      } catch (error) {
-        console.error('获取 openid 和 sessionkey 过程中出现错误:', error);
-        throw error;
-      }
+      });
     };
 
     // 封装解密手机号的逻辑
@@ -313,7 +299,7 @@ const getPhoneNumber = async (e: any) => {
       console.log('发送到后端的获取手机号数据:', getPhoneData);
       return new Promise<string>((resolve, reject) => {
         uni.request({
-          url: baseUrl + '/getphone',
+          url: baseUrl + '/shop/getphone',
           method: 'POST',
           data: getPhoneData,
           success: (decryptRes) => {
@@ -357,7 +343,7 @@ const getPhoneNumber = async (e: any) => {
   }
 };
 
-// 获取 code，没用上
+// 获取 code
 const getcode = () => {
   // 实现获取code的逻辑
   console.log("获取code");
