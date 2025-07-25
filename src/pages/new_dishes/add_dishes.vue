@@ -1,28 +1,62 @@
 <script setup lang="ts">
-// 修改为自动导入方式（easycom已配置）
-// 无需手动导入，直接使用 <uni-fab> 标签即可
-import {ref, nextTick} from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
+import { baseUrl } from "@/router";
+
+// 从本地缓存获取 userEntity
+const getUserEntityFromStorage = () => {
+  try {
+    const userEntity = uni.getStorageSync('userEntity');
+    return userEntity;
+  } catch (error) {
+    console.error('获取本地缓存 userEntity 失败:', error);
+    return null;
+  }
+};
+
+
+// 获取 shopId
+const userEntity = getUserEntityFromStorage();
+const shopId = ref(userEntity && userEntity.shop ? userEntity.shop.id : null);
 
 // 添加数据源
 const items = ref([
-  {
-    id: 45556,
-    dish_name: '桂林米粉',
-    price: 10,
-    image_url: "https://ts1.tc.mm.bing.net/th/id/OIP-C.bfDWFKlpBIajsYJr7v-XngHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
-    category: "招牌菜品"
-  },
-  {
-    id: 45557,
-    dish_name: '桂林4米粉',
-    price: 10,
-    image_url: "https://ts1.tc.mm.bing.net/th/id/OIP-C.bfDWFKlpBIajsYJr7v-XngHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
-    category: "招牌菜品"
-  },
-
   // 可以继续添加更多项
 ])
 
+const fetchDishes = async () => {
+  try {
+    // 使用 uni.request 替代 axios
+    const response = await new Promise((resolve, reject) => {
+      uni.request({
+        url: baseUrl + '/shop/dishes',
+        method: 'GET',
+        success: (res) => {
+          if (res.statusCode === 200) {
+            resolve(res.data);
+          } else {
+            reject(new Error(`请求失败，状态码：${res.statusCode}`));
+          }
+        },
+        fail: (err) => {
+          reject(err);
+        }
+      });
+    });
+    console.log(response);
+    // 转换数据字段名
+    items.value = response.map((item: any) => ({
+      ...item,
+      dish_name: item.dishName, // 将 dishName 转换为 dish_name
+      // 若还有其他需要转换的字段，可在此继续添加
+    }));
+  } catch (error) {
+    console.error('获取菜品信息失败:', error);
+  }
+};
+// 在组件挂载时调用 fetchDishes 函数
+onMounted(() => {
+  fetchDishes();
+});
 const scrollTop = ref(0)
 const old = ref({
   scrollTop: 0
@@ -64,16 +98,56 @@ const toggleSelection = (id: number) => {
   }
 };
 
-const handleSave = () => {
-  console.log('选中的菜品ID:', selectedItems.value);
-  // 这里可以添加导航回上一页或其他逻辑
-  uni.navigateBack();
+const handleSave = async () => {
+  try {
+    const selectedDishesIds = selectedItems.value;
+    const requestData = {
+      shopId: shopId.value,
+      dishesIds: selectedDishesIds
+    };
+
+    console.log('发送到后端的数据:', requestData);
+
+    // 发送请求到后端
+    await new Promise((resolve, reject) => {
+      uni.request({
+        url: baseUrl + '/shop/saveShopDishes', // 替换为实际的后端接口地址
+        method: 'POST',
+        data: requestData,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            console.log('保存成功:', res.data);
+            resolve(res.data);
+          } else {
+            reject(new Error(`请求失败，状态码：${res.statusCode}`));
+          }
+        },
+        fail: (err) => {
+          reject(err);
+        }
+      });
+    });
+
+    // 这里可以添加导航回上一页或其他逻辑
+    // 保存成功后跳转并刷新页面
+    uni.reLaunch({
+      url: '/pages/new_dishes/new_dishes' // 替换为实际跳转的页面路径
+    });
+  } catch (error) {
+    console.error('保存失败:', error);
+    uni.showToast({
+      icon: "none",
+      title: "保存失败，请重试"
+    });
+  }
 };
 
 const handleCancel = () => {
-  uni.navigateBack();
+  // 取消操作后跳转并刷新页面
+  uni.reLaunch({
+    url: '/pages/new_dishes/new_dishes' // 替换为实际跳转的页面路径
+  });
 };
-
 </script>
 
 <template>
@@ -90,10 +164,11 @@ const handleCancel = () => {
           <!-- 使用 v-for 循环渲染视图 -->
           <view v-for="item in items" :key="item.id" class="dish-box" >
             <view class="dish-item">
-              <image :src="item.image_url" mode="aspectFit" class="dish-image"></image>
+              <image :src="item.image" mode="aspectFit" class="dish-image"></image>
               <view class="dish-info">
                 <view class="info-row">
                   <text class="label">菜品名称：</text>
+                  <!-- 使用转换后的字段名 -->
                   <text class="value">{{ item.dish_name }}</text>
                 </view>
                 <view class="info-row">
@@ -102,7 +177,7 @@ const handleCancel = () => {
                 </view>
                 <view class="info-row">
                   <text class="label">分类：</text>
-                  <text class="value">{{ item.category }}</text>
+                  <text class="value">{{ item.typeId }}</text>
                 </view>
               </view>
               <view class="dish-actions">
