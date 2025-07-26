@@ -30,6 +30,9 @@ const fetchDishes = async () => {
       uni.request({
         url: baseUrl + '/shop/dishes',
         method: 'GET',
+        data: {
+          shopId: shopId.value,
+        },
         success: (res) => {
           if (res.statusCode === 200) {
             resolve(res.data);
