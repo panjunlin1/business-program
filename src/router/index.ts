@@ -3,8 +3,9 @@ import OrderDetails from '@/pages/OrderDetails/OrderDetails.vue';
 import OrderList from '../pages/order/order.vue'; // 假设订单列表组件路径
 
 // 定义 API 基础 URL
-const baseUrl = 'https://11kx146lc0484.vicp.fun';
 
+// const baseUrl = 'https://11kx146lc0484.vicp.fun'; // 姚兆宏的域名
+const baseUrl = 'https://qb111pq526416.vicp.fun';  // 古圣民的域名
 const routes = [
     {
         path: '/',

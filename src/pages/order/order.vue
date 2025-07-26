@@ -8,7 +8,19 @@
     <button class="button-ton" @click="a4">已完成</button>
   </div>
 
-  <div v-for="order in filteredOrder" :key="order.id" class="order-box" @click="handleOrderClick(order.id)">
+  <!-- 未登录时跳转到登录页 -->
+  <div v-if="!isLogin && !loading" class="login-tip" @click="navigateToLogin">
+    请先登录查看订单
+  </div>
+
+  <!-- 加载中提示 -->
+  <div v-if="loading" class="login-tip">加载中...</div>
+
+  <!-- 已登录但无订单 -->
+  <div v-if="isLogin && filteredOrder.length === 0 && !loading" class="login-tip">暂无订单数据</div>
+
+  <!-- 订单列表 -->
+  <div v-else-if="isLogin" v-for="order in filteredOrder" :key="order.id" class="order-box" @click="handleOrderClick(order.id)">
     <div class="order-item">
       <div class="order-f1">
         <div class="data-pair">
@@ -32,10 +44,11 @@
         <div class="data-pair">
           <span class="label">状态：</span>
           <span class="span status-tag" :class="{
-          'status-2': order.status === '2',
-          'status-4': order.status === '4',
-          'status-5': order.status === '5',
-          'status-6': order.status === '6'}">
+            'status-2': order.status === '2',
+            'status-4': order.status === '4',
+            'status-5': order.status === '5',
+            'status-6': order.status === '6'
+          }">
             {{ getStatusText(order.status) }}
           </span>
         </div>
@@ -57,87 +70,102 @@
 </template>
 
 
-<script setup>
-import {computed, onMounted, ref} from 'vue';
-import {baseUrl} from "@/router";
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import { baseUrl } from "@/router";
 
-const request = (url, method = 'GET', data = {}) => {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url,
-      method,
-      data,
-      header: {
-        'Content-Type': 'application/json'
-      },
-      success: (res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data); // 只返回数据部分
-          console.log("aaaaa:",res.data.data);
-        } else {
-          reject(new Error(res.data.msg || '请求失败'));
-        }
-      },
-      fail: (err) => reject(new Error('网络请求失败：' + err.errMsg))
-    });
-  });
-};
-
-// 2. 定义获取订单列表的方法
-const getOrderList = () => {
-  // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
-  return request(`${baseUrl}/api/orders`);
-};
-
-// 3. 初始化订单数据（空数组）
-const orders = ref([]);
+// 响应式数据
+const isLogin = ref(false); // 登录状态
+const orders = ref([]); // 订单列表
 const loading = ref(false); // 加载状态
+const currentStatus = ref(''); // 当前筛选状态
 const error = ref(''); // 错误信息
 
 
-// 4. 组件挂载时获取订单数据
+// 初始化：检查登录状态并加载订单
 onMounted(async () => {
-  try {
-    loading.value = true;
-    const data = await getOrderList();
-    // 遍历订单，把 status 转成字符串
-    orders.value = data.map(order => ({
-      ...order,
-      status: order.status + '' // 数字转字符串，确保和 statusMap 键类型一致
-    }));
-  } catch (err) {
-    error.value = err.message;
-  } finally {
-    loading.value = false;
+  // 检查登录状态（从本地存储获取）
+  checkLoginStatus();
+
+  // 如果已登录，加载订单
+  if (isLogin.value) {
+    await loadOrders();
   }
 });
 
-// 接收通过事件绑定从DOM元素传递来的orderId参数
-// 使用APP框架的导航API（uni-app为例）
-// 路由跳转（uni-app框架）使用uni.navigateTo方法跳转到订单详情页（uni-app框架提供的导航）
-// 目标路径格式：/pages/abc/abc?orderId=${orderId}
-// 其中/pages/abc/abc是页面路径，需要在pages.json设置；?orderId=${orderId}为URL参数，用于传递订单ID到详情页
-const handleOrderClick = (orderId) => {
-  console.log('点击事件触发，orderId:', orderId)
-  uni.navigateTo({
-    url: `/pages/OrderDetails/OrderDetails?orderId=${orderId}`, // 对应pages.json中的页面路径
-  }).catch(err => {
-    console.error('路由跳转错误:', err); // 捕获并打印可能的错误
-  });
-}
 
+// 检查登录状态
+// 订单页代码（修改部分）
+const checkLoginStatus = () => {
+  const loginstate = uni.getStorageSync('loginstate');
+  const userEntity = uni.getStorageSync('userEntity');
+
+  console.log('订单页登录状态检查：');
+  console.log('loginstate:', loginstate);
+  console.log('userEntity:', userEntity);
+
+  // 从 userEntity 中获取 token（关键修改！）
+  const token = userEntity?.token || '';
+  console.log('token:', token);
+
+  // 判断登录状态
+  isLogin.value = loginstate === "1" && !!userEntity && !!token;
+  console.log('最终登录状态:', isLogin.value);
+};
+
+
+// 加载订单列表
+const loadOrders = async () => {
+  try {
+    loading.value = true;
+    const token = uni.getStorageSync('token');
+
+    const res = await uni.request({
+      url: `${baseUrl}/api/orders`,
+      method: 'GET',
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.data.code === 200 && res.data.data) {
+      orders.value = res.data.data.map((order: any) => ({
+        ...order,
+        status: order.status + ''
+      }));
+      console.log('订单加载成功:', orders.value);
+    } else {
+      error.value = res.data.msg || '获取订单失败';
+      console.error('订单接口返回错误:', res.data);
+    }
+  } catch (err) {
+    error.value = '网络错误，无法加载订单';
+    console.error('订单加载失败:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+
+// 订单状态文本映射
 const statusMap = {
   '2': '已接取',
   '4': '待接取',
   '5': '已取消',
   '6': '已完成'
-}
+};
 
-// 计算筛选后的订单
+// 获取状态文本
+const getStatusText = (status: string) => {
+  return statusMap[status] || '未知状态';
+};
+
+
+// 筛选订单
 const filteredOrder = computed(() => {
-  if(!currentStatus.value) return orders.value;
+  if (!currentStatus.value) return orders.value;
 
-  // 处理筛选5和6的情况
   if (currentStatus.value === '5,6') {
     return orders.value.filter(order => order.status === '5' || order.status === '6');
   }
@@ -145,34 +173,30 @@ const filteredOrder = computed(() => {
   return orders.value.filter(order => order.status === currentStatus.value);
 });
 
-const getStatusText = (status) => {
-  return statusMap[status] || '状态未知';
-}
 
-//
-// 使用 Vue 3 的 Composition API 定义方法
-const currentStatus = ref();
+// 筛选按钮事件
+const a1 = () => { currentStatus.value = ''; }; // 全部
+const a2 = () => { currentStatus.value = '2'; }; // 已接取
+const a3 = () => { currentStatus.value = '4'; }; // 待接取
+const a4 = () => { currentStatus.value = '5,6'; }; // 已完成
 
-const a1 = () => {
-  console.log('点击了"全部"按钮');
-  currentStatus.value = '';
+
+// 点击订单跳转详情
+const handleOrderClick = (orderId: string) => {
+  if (!isLogin.value) return;
+
+  uni.navigateTo({
+    url: `/pages/OrderDetails/OrderDetails?orderId=${orderId}`
+  });
 };
 
-const a2 = () => {
-  console.log('点击了"已接取"按钮');
-  currentStatus.value = '2';
-};
 
-const a3 = () => {
-  console.log('点击了"待接取"按钮');
-  currentStatus.value = '4';
+// 跳转到登录页
+const navigateToLogin = () => {
+  uni.navigateTo({
+    url: '/pages/Login/Login' // 替换为你的登录页路径
+  });
 };
-
-const a4 = () => {
-  console.log('点击了"已完成"按钮');
-  currentStatus.value = '5,6';
-};
-
 </script>
 
 
@@ -287,4 +311,14 @@ const a4 = () => {
   background-color: #f1f8e9; /* 浅绿色背景 */
 }
 
+/* 提示文本样式 */
+.login-tip {
+  text-align: center;
+  padding: 50rpx;
+  color: #666;
+  font-size: 16px;
+  /* 如果想让提示在垂直方向更靠下，可结合margin-top等调整：
+  margin-top: auto; 会把提示推到容器底部 */
+  margin-top: 60%;
+}
 </style>
