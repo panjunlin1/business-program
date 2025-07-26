@@ -215,7 +215,7 @@ const handleDelete = async () => {
                 </view>
                 <view class="info-row">
                   <text class="label">分类：</text>
-                  <text class="value">{{ item.typeId }}</text>
+                  <text class="value">{{ item.typeName }}</text>
                 </view>
               </view>
               <view class="dish-actions">
