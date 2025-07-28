@@ -41,7 +41,7 @@
         </div>
         <div class="data-pair">
           <span class="label">总价：</span>
-          <span class="span totalPrice-tag">{{ order.totalprice }}</span>
+          <span class="span totalPrice-tag">{{ order.totalprice }}￥</span>
         </div>
       </div>
     </div>
@@ -51,11 +51,11 @@
 <!--      <p class="product-list-title">用户选择的所有商品：从上往下一一列举，包含菜品名称、价格、数量</p>-->
       <div
           class="product-item"
-          v-for="(product, index) in order.products"
+          v-for="(product, index) in userDetails.items"
           :key="index">
-        <span>{{ product.name }}</span>
+        <span>{{ product.dishName }}</span>
         <span>*{{ product.quantity }}</span>
-        <span>{{ product.price }}￥</span>
+        <span>{{ (product.unitPrice)*(product.quantity) }}￥</span>
       </div>
     </div>
 
@@ -84,6 +84,7 @@ import {baseUrl} from "@/router";
 
 const order = ref({});
 const userData = ref({});
+const userDetails = ref({});
 // 加载状态
 const loading = ref(false);
 // 错误信息
@@ -123,6 +124,12 @@ const getOrderUserById = (userId) => {
   return request(`${baseUrl}/api/orders/user/${userId}`);
 };
 
+// 2. 定义获取用户列表的方法
+const getOrderUserDetailsById = (userId) => {
+  // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
+  return request(`${baseUrl}/api/orders/user/${userId}/details`);
+};
+
 onLoad(async (options) => {
   const { orderId, userId } = options; // 同时获取两个参数
   console.log('订单ID:', orderId);
@@ -136,15 +143,20 @@ onLoad(async (options) => {
   try {
     loading.value = true;
     const data = await getOrderById(orderId); // data是数组：[{id:1, ...}]
-    console.log("orderId:",orderId);
-    console.log("userId:",userId);
     const data1 = await getOrderUserById(userId);
-    console.log("userId:",userId);
+    const data2 = await getOrderUserDetailsById(userId);
+    console.log("data2:",data2)
     // 兼容数组格式：取第一个元素
     const orderData = Array.isArray(data) ? data[0] : data;
     console.log("orderData:",orderData);
     userData.value = Array.isArray(data1) ? data1[0] : data1;
     console.log("userData:",userData);
+
+    userDetails.value = Array.isArray(data2)
+        ? data2.find(item => item.id.toString() === orderId)  // 注意类型转换（接口返回可能是数字，orderId是字符串）
+        : data2;
+
+    console.log("userDetails:",userDetails);
     // 处理状态（确保orderData存在）
     order.value = {
       ...orderData,
