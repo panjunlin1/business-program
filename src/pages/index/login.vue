@@ -335,7 +335,7 @@ const getPhoneNumber = async (e: any) => {
       return;
     }
 
-    onshow(openid, userInfo.value, phoneNumber);
+    await onshow(openid, userInfo.value, phoneNumber);
     console.log("登录成功");
     console.log(phoneNumber);
   } catch (error) {

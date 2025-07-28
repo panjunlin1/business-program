@@ -20,12 +20,12 @@
   <div v-if="isLogin && filteredOrder.length === 0 && !loading" class="login-tip">暂无订单数据</div>
 
   <!-- 订单列表 -->
-  <div v-else-if="isLogin" v-for="order in filteredOrder" :key="order.id" class="order-box" @click="handleOrderClick(order.id)">
+  <div v-else-if="isLogin" v-for="order in filteredOrder" :key="order.id" class="order-box" @click="handleOrderClick(order.id,order.userid)">
     <div class="order-item">
       <div class="order-f1">
         <div class="data-pair">
-          <span class="label">ID：</span>
-          <span class="span">{{ order.shopid }}</span>
+          <span class="label">客户ID：</span>
+          <span class="span">{{ order.userid}}</span>
         </div>
         <div class="data-pair">
           <span class="label">订单号：</span>
@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { baseUrl } from "@/router";
+import { onShow, onLoad } from '@dcloudio/uni-app';
 
 // 响应式数据
 const isLogin = ref(false); // 登录状态
@@ -80,6 +81,7 @@ const orders = ref([]); // 订单列表
 const loading = ref(false); // 加载状态
 const currentStatus = ref(''); // 当前筛选状态
 const error = ref(''); // 错误信息
+const userEntity = ref(null);
 
 
 // 初始化：检查登录状态并加载订单
@@ -147,6 +149,31 @@ const loadOrders = async () => {
   }
 };
 
+// 页面加载时读取数据
+onLoad(() => {
+  try {
+    const storedUserEntity = uni.getStorageSync('userEntity');
+    if (storedUserEntity) {
+      userEntity.value = storedUserEntity;
+    }
+  } catch (error) {
+    console.error('读取 userEntity 数据失败:', error);
+  }
+});
+
+// 页面显示时重新读取数据
+onShow(() => {
+  try {
+    const storedUserEntity = uni.getStorageSync('userEntity');
+    if (storedUserEntity) {
+      userEntity.value = storedUserEntity;
+      console.log(userEntity)
+    }
+  } catch (error) {
+    console.error('重新读取 userEntity 数据失败:', error);
+  }
+});
+
 
 // 订单状态文本映射
 const statusMap = {
@@ -156,6 +183,7 @@ const statusMap = {
   '6': '已完成'
 };
 
+
 // 获取状态文本
 const getStatusText = (status: string) => {
   return statusMap[status] || '未知状态';
@@ -164,13 +192,19 @@ const getStatusText = (status: string) => {
 
 // 筛选订单
 const filteredOrder = computed(() => {
-  if (!currentStatus.value) return orders.value;
+  // 先按状态筛选
+  let result = orders.value;
 
-  if (currentStatus.value === '5,6') {
-    return orders.value.filter(order => order.status === '5' || order.status === '6');
+  if (currentStatus.value) {
+    if (currentStatus.value === '5,6') {
+      result = result.filter(order => order.status === '5' || order.status === '6');
+    } else {
+      result = result.filter(order => order.status === currentStatus.value);
+    }
   }
 
-  return orders.value.filter(order => order.status === currentStatus.value);
+  // 再筛选出 id 的订单（核心新增逻辑）
+  return result.filter(order => order.shopid === userEntity.value?.shop?.id);
 });
 
 
@@ -182,21 +216,16 @@ const a4 = () => { currentStatus.value = '5,6'; }; // 已完成
 
 
 // 点击订单跳转详情
-const handleOrderClick = (orderId: string) => {
+const handleOrderClick = (orderId: string, userId: string) => {
   if (!isLogin.value) return;
-
+  console.log(orderId)
+  console.log(userId);
   uni.navigateTo({
-    url: `/pages/OrderDetails/OrderDetails?orderId=${orderId}`
+    url: `/pages/OrderDetails/OrderDetails?orderId=${encodeURIComponent(orderId)}&userId=${encodeURIComponent(userId)}`
   });
 };
 
 
-// 跳转到登录页
-const navigateToLogin = () => {
-  uni.navigateTo({
-    url: '/pages/Login/Login' // 替换为你的登录页路径
-  });
-};
 </script>
 
 

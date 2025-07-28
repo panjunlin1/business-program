@@ -63,15 +63,15 @@
     <div class="user-info">
       <div class="order-info-item">
         <span class="info-label">用户名称：</span>
-        <span class="info-value">{{ order.userName }}</span>
+        <span class="info-value">{{ userData.userName }}</span>
       </div>
       <div class="order-info-item">
         <span class="info-label">联系电话：</span>
-        <span class="info-value">{{ order.phoneNum }}</span>
+        <span class="info-value">{{ userData.userPhone }}</span>
       </div>
       <div class="order-info-item">
         <span class="info-label">收货地址：</span>
-        <span class="info-value">{{ order.address }}</span>
+        <span class="info-value">{{ userData.userAddress }}</span>
       </div>
     </div>
   </div>
@@ -83,6 +83,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import {baseUrl} from "@/router";
 
 const order = ref({});
+const userData = ref({});
 // 加载状态
 const loading = ref(false);
 // 错误信息
@@ -116,8 +117,17 @@ const getOrderById = (orderId) => {
   return request(`${baseUrl}/api/orders/${orderId}`);
 };
 
+// 2. 定义获取用户列表的方法
+const getOrderUserById = (userId) => {
+  // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
+  return request(`${baseUrl}/api/orders/user/${userId}`);
+};
+
 onLoad(async (options) => {
-  const orderId = options.orderId;
+  const { orderId, userId } = options; // 同时获取两个参数
+  console.log('订单ID:', orderId);
+  console.log('用户ID:', userId);
+
   if (!orderId) {
     error.value = '订单ID不存在';
     return;
@@ -126,17 +136,23 @@ onLoad(async (options) => {
   try {
     loading.value = true;
     const data = await getOrderById(orderId); // data是数组：[{id:1, ...}]
-
+    console.log("orderId:",orderId);
+    console.log("userId:",userId);
+    const data1 = await getOrderUserById(userId);
+    console.log("userId:",userId);
     // 兼容数组格式：取第一个元素
     const orderData = Array.isArray(data) ? data[0] : data;
-
+    console.log("orderData:",orderData);
+    userData.value = Array.isArray(data1) ? data1[0] : data1;
+    console.log("userData:",userData);
     // 处理状态（确保orderData存在）
     order.value = {
       ...orderData,
       status: orderData ? (orderData.status + '') : '' // 避免orderData为undefined
     };
-
+    console.log("数据：",data);
     console.log('修正后的数据：', order.value); // 此时应显示正确的订单对象
+    console.log("用户信息：",userData);
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -288,7 +304,7 @@ const getStatusText = (status) => {
 }
 
 /* 状态标签特殊样式 */
-.status-tag {
+.status-tag.status-6 {
   color: #4caf50;
   font-weight: 600;
   background-color: #f1f8e9;
@@ -296,7 +312,7 @@ const getStatusText = (status) => {
 }
 
 /* 价格标签特殊样式 */
-.totalPrice-tag {
+.status-tag.status-4 {
   color: #f44336;
   font-weight: 600;
   font-size: 10px;
