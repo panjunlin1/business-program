@@ -52,6 +52,7 @@
     "@dcloudio/uni-quickapp-webview": "3.0.0-4030620241128001",
     "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.10.0",
+    "echarts": "^5.6.0",
     "vue": "^3.4.21",
     "vue-i18n": "^9.1.9",
     "vue-router": "^4.5.1",
