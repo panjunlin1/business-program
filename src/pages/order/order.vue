@@ -47,7 +47,8 @@
             'status-2': order.status === '2',
             'status-4': order.status === '4',
             'status-5': order.status === '5',
-            'status-6': order.status === '6'
+            'status-6': order.status === '6',
+            'status-8': order.status === '8'
           }">
             {{ getStatusText(order.status) }}
           </span>
@@ -73,7 +74,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { baseUrl } from "@/router";
-import { onShow, onLoad } from '@dcloudio/uni-app';
+import {onShow, onLoad, onUnload} from '@dcloudio/uni-app';
 
 // 响应式数据
 const isLogin = ref(false); // 登录状态
@@ -161,17 +162,28 @@ onLoad(() => {
   }
 });
 
-// 页面显示时重新读取数据
 onShow(() => {
+  // 页面显示时，监听刷新事件
+  uni.$on('refreshOrderList', async () => {
+    if (isLogin.value) {
+      await loadOrders(); // 重新加载订单列表
+    }
+  });
+
+  // 读取本地数据（保留原有逻辑）
   try {
     const storedUserEntity = uni.getStorageSync('userEntity');
     if (storedUserEntity) {
       userEntity.value = storedUserEntity;
-      console.log(userEntity)
     }
   } catch (error) {
-    console.error('重新读取 userEntity 数据失败:', error);
+    console.error('读取数据失败:', error);
   }
+});
+
+// 页面卸载时移除监听，避免内存泄漏
+onUnload(() => {
+  uni.$off('refreshOrderList');
 });
 
 
@@ -180,7 +192,8 @@ const statusMap = {
   '2': '已接取',
   '4': '待接取',
   '5': '已取消',
-  '6': '已完成'
+  '6': '已完成',
+  '8': '商家已拒绝'
 };
 
 
@@ -196,8 +209,8 @@ const filteredOrder = computed(() => {
   let result = orders.value;
 
   if (currentStatus.value) {
-    if (currentStatus.value === '5,6') {
-      result = result.filter(order => order.status === '5' || order.status === '6');
+    if (currentStatus.value === '5,6,8') {
+      result = result.filter(order => order.status === '5' || order.status === '6' || order.status === '8');
     } else {
       result = result.filter(order => order.status === currentStatus.value);
     }
@@ -212,7 +225,7 @@ const filteredOrder = computed(() => {
 const a1 = () => { currentStatus.value = ''; }; // 全部
 const a2 = () => { currentStatus.value = '2'; }; // 已接取
 const a3 = () => { currentStatus.value = '4'; }; // 待接取
-const a4 = () => { currentStatus.value = '5,6'; }; // 已完成
+const a4 = () => { currentStatus.value = '5,6,8'; }; // 已完成
 
 
 // 点击订单跳转详情
@@ -309,12 +322,6 @@ const handleOrderClick = (orderId: string, userId: string) => {
   text-overflow: ellipsis; /* 显示省略号 */
 }
 
-/* 状态标签特殊样式 */
-.status-tag {
-  font-weight: 600;
-  padding: 2px 8px;
-  width: 20%;
-}
 
 /* 已接取状态样式 */
 .status-tag.status-2 {
@@ -338,6 +345,11 @@ const handleOrderClick = (orderId: string, userId: string) => {
 .status-tag.status-6 {
   color: #4caf50; /* 文字颜色 */
   background-color: #f1f8e9; /* 浅绿色背景 */
+}
+
+.status-tag.status-8 {
+  color:  #ef5350; /* 文字颜色 */
+  background-color: #ffebee; /* 浅红色背景 */
 }
 
 /* 提示文本样式 */

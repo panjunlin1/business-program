@@ -27,7 +27,8 @@
           'status-2': order.status === '2',
           'status-4': order.status === '4',
           'status-5': order.status === '5',
-          'status-6': order.status === '6'}">
+          'status-6': order.status === '6',
+          'status-8': order.status === '8'}">
             {{ getStatusText(order.status) }}
           </span>
         </div>
@@ -73,6 +74,12 @@
         <span class="info-label">收货地址：</span>
         <span class="info-value">{{ userData.userAddress }}</span>
       </div>
+    </div>
+
+    <!-- 新增：状态操作按钮 -->
+    <div class="action-buttons" v-if="order.status === '4'">
+      <button class="btn accept-btn" @click="handleAccept">接受订单</button>
+      <button class="btn reject-btn" @click="handleReject">拒绝订单</button>
     </div>
   </div>
 </template>
@@ -172,46 +179,62 @@ onLoad(async (options) => {
   }
 });
 
-
-// onLoad((options) => {
-//   const orderId = options.orderId;
-//   console.log('详情页接收的orderId:', orderId);
-//
-//   // // 模拟异步获取完整订单数据
-//   // setTimeout(() => {
-//   //   order.value = {
-//   //     id: orderId,
-//   //     status: '4',
-//   //     orderId: 'ORD004',
-//   //     diningChoice: '堂食',
-//   //     orderTime: '2023-10-01 12:00:00',
-//   //     totalPrice: '106.00',
-//   //     // 商品列表数据
-//   //     products: [
-//   //       { name: '牛蛙火锅', quantity: 1, price: 100 },
-//   //       { name: '青菜', quantity: 1, price: 2 },
-//   //       { name: '火腿肠', quantity: 2, price: 4 }
-//   //     ],
-//   //     // 用户信息
-//   //     userName: '张三',
-//   //     phone: '13800138000',
-//   //     address: 'XX市XX区XX街道123号',
-//   //     paymentMethod: '微信支付'
-//   //   };
-//   // }, 1000);
-// });
-
 const statusMap = {
   '2': '已接取',
   '4': '待接取',
   '5': '已取消',
-  '6': '已完成'
+  '6': '已完成',
+  '8': '商家已拒绝'
 }
 
 const getStatusText = (status) => {
   return statusMap[status] || '状态未知';
 }
 
+// 新增：定义修改订单状态的接口
+const updateOrderStatus = (orderId, newStatus) => {
+  return request(`${baseUrl}/api/orders/${orderId}/status`, 'POST', {
+    status: newStatus
+  });
+};
+
+// 新增：接受订单逻辑
+const handleAccept = async () => {
+  try {
+    await updateOrderStatus(order.value.id, '2'); // 调用接口修改状态为“已接取”
+    order.value.status = '2'; // 本地更新状态（无需重新请求接口）
+    await uni.showToast({title: '订单已接受', icon: 'success'});
+    // 返回列表页并触发刷新
+    setTimeout(() => {
+      uni.navigateBack({
+        delta: 1, // 返回上一页（订单列表页）
+        success: () => {
+          // 通过事件通知列表页刷新
+          uni.$emit('refreshOrderList');
+        }
+      });
+    }, 500);
+  } catch (err) {
+    await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
+  }
+};
+
+// 新增：拒绝订单逻辑
+const handleReject = async () => {
+  try {
+    await updateOrderStatus(order.value.id, '8'); // 调用接口修改状态为“已取消”
+    order.value.status = '5'; // 本地更新状态
+    await uni.showToast({title: '订单已拒绝', icon: 'none'});
+    uni.navigateBack({
+      delta: 1,
+      success: () => {
+        uni.$emit('refreshOrderList');
+      }
+    });
+  } catch (err) {
+    await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
+  }
+};
 
 </script>
 
@@ -315,20 +338,35 @@ const getStatusText = (status) => {
   border-bottom: 1px dashed #eee;
 }
 
-/* 状态标签特殊样式 */
-.status-tag.status-6 {
-  color: #4caf50;
-  font-weight: 600;
-  background-color: #f1f8e9;
-  border-radius: 4px;
+/* 已接取状态样式 */
+.status-tag.status-2 {
+  color: #ffb74d; /* 文字颜色 */
+  background-color: #fff8e1; /* 浅黄色背景 */
 }
 
 /* 价格标签特殊样式 */
 .status-tag.status-4 {
-  color: #f44336;
-  font-weight: 600;
-  font-size: 10px;
+  color:  #ef5350; /* 文字颜色 */
+  background-color: #ffebee; /* 浅红色背景 */
 }
+
+/* 已取消状态样式 */
+.status-tag.status-5 {
+  color:  #9e9e9e; /* 文字颜色 */
+  background-color: #f5f5f5; /* 浅灰色背景 */
+}
+
+/* 状态标签特殊样式 */
+.status-tag.status-6 {
+  color: #4caf50; /* 文字颜色 */
+  background-color: #f1f8e9; /* 浅绿色背景 */
+}
+
+.status-tag.status-8 {
+  color:  #ef5350; /* 文字颜色 */
+  background-color: #ffebee; /* 浅红色背景 */
+}
+
 
 /* 用户信息区域样式 */
 .user-info {
@@ -336,5 +374,32 @@ const getStatusText = (status) => {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 10px;
+}
+
+/* 新增按钮样式 */
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+  padding: 0 20px;
+}
+
+.btn {
+  width: 45%;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  border: none;
+}
+
+.accept-btn {
+  background-color: #4caf50; /* 绿色 */
+}
+
+.reject-btn {
+  background-color: #f44336; /* 红色 */
 }
 </style>
