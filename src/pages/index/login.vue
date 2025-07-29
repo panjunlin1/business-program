@@ -336,6 +336,7 @@ const getPhoneNumber = async (e: any) => {
     }
 
     await onshow(openid, userInfo.value, phoneNumber);
+    uni.$emit('refreshOrderList');
     console.log("登录成功");
     console.log(phoneNumber);
   } catch (error) {
