@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted, getCurrentInstance } from 'vue'
-import { baseUrl } from "@/router";
-import * as echarts from 'echarts';
+import {ref, onMounted, nextTick, onUnmounted, getCurrentInstance} from 'vue'
+import {baseUrl} from "@/router";
+// 直接导入 uCharts
+import uCharts from '../../static/u-charts/u-charts';
 
 // 从本地缓存获取 userEntity
 const getUserEntityFromStorage = () => {
@@ -27,6 +28,7 @@ interface TenDayDataItem {
   netProfit: number;
   date: string;
 }
+
 interface TenDayResponse {
   code: number;
   msg: string;
@@ -37,9 +39,19 @@ interface TenDayResponse {
 const tenDayData = ref<TenDayDataItem[]>([]);
 const loading = ref(true);
 const errorMsg = ref('');
+// 新增：在 setup 顶层获取组件实例
+const instance = getCurrentInstance();
+console.log('setup顶层获取实例:', instance);
+
+// 新增：保存图表实例和canvas上下文
+let chartInstance: any = null;
+let canvasContext: any = null;
 
 // 获取十日数据函数
 const fetchTenDayData = async () => {
+  loading.value = true;
+  errorMsg.value = '';
+
   if (!shopId.value) {
     errorMsg.value = 'shopId 为空，无法获取数据';
     loading.value = false;
@@ -47,7 +59,6 @@ const fetchTenDayData = async () => {
   }
 
   try {
-    loading.value = true;
     const queryParams = `?shopId=${shopId.value}`;
     const requestUrl = baseUrl + '/shop/queryTenDay' + queryParams;
 
@@ -56,8 +67,8 @@ const fetchTenDayData = async () => {
         url: requestUrl,
         method: 'GET',
         success: (res) => {
+          console.log('原始响应数据:', res);
           if (res.statusCode === 200) {
-            console.log('接口返回十日数据:', res.data);
             resolve(res.data as TenDayResponse);
           } else {
             reject(new Error(`请求失败，状态码：${res.statusCode}`));
@@ -69,136 +80,297 @@ const fetchTenDayData = async () => {
       });
     });
 
-    // 关键修复：将 response.code === 0 改为 response.code === 200
-    if (response.code === 200 && response.data) {
-      tenDayData.value = response.data;
-      errorMsg.value = '';
-      // 新增：确认数据长度
-      console.log('数据赋值成功，长度:', tenDayData.value.length);
-    } else {
-      errorMsg.value = response.msg || '获取数据失败';
-    }
 
-    nextTick(() => {
-      renderChart();
-    });
+    console.log('处理后的响应:', response);
+    if (response && response.code === 200 && response.data) {
+      tenDayData.value = response.data;
+      console.log('设置tenDayData:', tenDayData.value);
+      errorMsg.value = '';
+    } else {
+      errorMsg.value = response?.msg || '获取数据失败';
+    }
   } catch (error) {
     console.error('获取十日数据失败:', error);
     errorMsg.value = error instanceof Error ? error.message : '网络请求异常';
   } finally {
     loading.value = false;
   }
+
+  // 在nextTick中渲染图表
+  await nextTick(() => {
+    console.log('准备渲染图表，数据状态:', {
+      loading: loading.value,
+      errorMsg: errorMsg.value,
+      dataLength: tenDayData.value.length
+    });
+    if (!loading.value && !errorMsg.value && tenDayData.value.length > 0) {
+      renderChart();
+    }
+  });
 };
 
-// 渲染 ECharts 图表函数
+// 定义 canvas ID
+const canvasId = 'tenDayProfitChart';
+
+// 渲染 uCharts 图表函数
 const renderChart = () => {
+  console.log('进入renderChart，数据长度:', tenDayData.value.length);
+
   if (tenDayData.value.length === 0) {
     console.log('数据为空，不渲染图表');
     return;
   }
 
-  const instance = getCurrentInstance();
-  if (!instance) return;
+  // 延迟一小段时间确保 DOM 更新完成
+  setTimeout(() => {
+    try {
+      // 在 uni-app 中获取 canvas 上下文
+      const query = uni.createSelectorQuery().in(instance);
 
-  const query = uni.createSelectorQuery().in(instance);
-  query.select(`canvas[canvas-id="tenDayProfitChart"]`).node().exec((res) => {
-    if (!res[0]) {
-      console.error('未找到 canvas 元素');
-      return;
-    }
-    const canvas = res[0].node;
-    const ctx = canvas.getContext('2d');
-    const dpr = uni.getSystemInfoSync().pixelRatio;
-    canvas.width = res[0].width * dpr;
-    canvas.height = res[0].height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const myChart = echarts.init(canvas, null, {
-      width: res[0].width,
-      height: res[0].height,
-    });
-
-    // 处理数据
-    const sortedData = [...tenDayData.value].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    const xAxisData = sortedData.map(item => item.date);
-    const seriesData = sortedData.map(item => item.netProfit);
-
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        formatter: '{b}: {c} 元' // 提示框显示完整日期和利润
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: xAxisData,
-        axisLabel: {
-          rotate: 30,
-          interval: 0,
-          // 新增：格式化日期为 "日"（如 19日、20日）
-          formatter: (value: string) => {
-            return value.split('-')[2] + '日'; // 从 "2025-07-19" 提取 "19" 并添加 "日"
-          }
+      query.select('#' + canvasId).fields({ context: true, size: true }).exec((res) => {
+        console.log('Canvas查询结果:', res);
+        if (!res || !res[0] || !res[0].context) {
+          console.error('无法获取Canvas上下文');
+          return;
         }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: {
-          formatter: '{value} 元'
+
+        // 保存canvas上下文
+        canvasContext = res[0].context;
+
+        // 处理数据
+        const sortedData = [...tenDayData.value].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        console.log('排序后的数据:', sortedData);
+
+        // 确保数据有效
+        if (!sortedData || !Array.isArray(sortedData) || sortedData.length === 0) {
+          console.error('排序后的数据无效:', sortedData);
+          return;
         }
-      },
-      series: [
-        {
-          data: seriesData,
+
+        const xAxisData = sortedData.map(item => {
+          // 确保日期存在并格式化
+          if (!item.date) return '未知日期';
+          // 格式化日期为"日"（如 19日、20日）
+          const parts = item.date.split('-');
+          return parts.length === 3 ? parts[2]  : item.date;
+        });
+
+        const seriesData = sortedData.map(item => {
+          // 确保数值存在且是数字类型
+          if (item.netProfit === undefined || item.netProfit === null) return 0;
+          const num = Number(item.netProfit);
+          return isNaN(num) ? 0 : parseFloat(num.toFixed(2)); // 保留两位小数
+        });
+
+        // 确保数据格式正确
+        if (!xAxisData || !Array.isArray(xAxisData) || xAxisData.length === 0) {
+          console.error('x轴数据无效:', xAxisData);
+          return;
+        }
+
+        if (!seriesData || !Array.isArray(seriesData) || seriesData.length === 0) {
+          console.error('系列数据无效:', seriesData);
+          return;
+        }
+
+        // 确保两个数组长度一致
+        if (xAxisData.length !== seriesData.length) {
+          console.error('x轴数据和系列数据长度不一致:', xAxisData.length, seriesData.length);
+          return;
+        }
+
+        // 进一步验证 seriesData 中的每个元素都是数字
+        const validSeriesData = seriesData.every(item => typeof item === 'number' && !isNaN(item));
+        if (!validSeriesData) {
+          console.error('系列数据包含非数字项:', seriesData);
+          return;
+        }
+
+        console.log('x轴数据:', xAxisData);
+        console.log('系列数据:', seriesData);
+
+        // 确保 canvas 尺寸有效
+        const canvasWidth = res[0].width || 300;
+        const canvasHeight = res[0].height || 400;
+
+        if (canvasWidth <= 0 || canvasHeight <= 0) {
+          console.error('Canvas 尺寸无效:', { width: canvasWidth, height: canvasHeight });
+          return;
+        }
+
+        // 图表配置 - 原生 uCharts 配置
+        const options = {
+          canvasId: canvasId,
           type: 'line',
-          name: '净利润',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 8,
-          lineStyle: {
-            width: 2
-          },
-          itemStyle: {
+          categories: xAxisData,
+          series: [{
+            name: '净利润',
+            data: seriesData,
             color: '#409eff'
+          }],
+          xAxis: {
+            disableGrid: true,
+            rotate: 30,
+            fontSize: 5, // 减小x轴字体
+            itemGap: 2
+          },
+          yAxis: {
+            format: (val: number) => val.toFixed(2) + '元',
+            min: 0,
+            fontSize: 10 // 减小y轴字体
+          },
+          width: canvasWidth,
+          height: canvasHeight,
+          pixelRatio: uni.getSystemInfoSync().pixelRatio || 1,
+          dataLabel: false,
+          dataPointShape: true,
+          animation: false,
+          fontSize: 5, // 减小整体字体
+        };
+
+        // 销毁之前的图表实例
+        if (chartInstance) {
+          try {
+            chartInstance.destroy();
+          } catch (e) {
+            console.error('销毁旧图表实例时出错:', e);
           }
+          chartInstance = null; // 确保清空引用
         }
-      ]
-    };
 
-    myChart.setOption(option);
+        console.log('准备创建图表，配置:', options);
 
-    // 监听窗口大小变化
-    const resizeHandler = () => {
-      myChart.resize();
-    };
+        // 添加额外的验证确保 series.data 存在且为数组
+        if (options.series &&
+            Array.isArray(options.series) &&
+            options.series.length > 0 &&
+            options.series[0] &&
+            Array.isArray(options.series[0].data) &&
+            options.series[0].data.length > 0) {
+          try {
+            // 确保在创建新实例前没有旧实例
+            if (!chartInstance && uCharts) {
+              console.log('uCharts 类型:', typeof uCharts);
+              console.log('uCharts 内容:', uCharts);
 
-    uni.onWindowResize(resizeHandler);
-
-    // 组件卸载时清理
-    onUnmounted(() => {
-      uni.offWindowResize(resizeHandler);
-      myChart.dispose();
-    });
-  });
+              // 检查 uCharts 的正确使用方式
+              if (typeof uCharts === 'function') {
+                // uCharts 是构造函数
+                chartInstance = new uCharts({
+                  ...options,
+                  context: canvasContext
+                });
+                console.log('使用 new uCharts() 创建图表成功');
+              } else if (typeof uCharts === 'object' && uCharts.default && typeof uCharts.default === 'function') {
+                // uCharts 有 default 导出且是构造函数
+                chartInstance = new uCharts.default({
+                  ...options,
+                  context: canvasContext
+                });
+                console.log('使用 new uCharts.default() 创建图表成功');
+              } else if (typeof uCharts === 'object' && typeof uCharts.init === 'function') {
+                // uCharts 有 init 方法
+                chartInstance = uCharts.init({
+                  ...options,
+                  context: canvasContext
+                });
+                console.log('使用 uCharts.init() 创建图表成功');
+              } else if (typeof uCharts === 'function') {
+                // 直接调用 uCharts 函数
+                chartInstance = uCharts({
+                  ...options,
+                  context: canvasContext
+                });
+                console.log('使用 uCharts() 创建图表成功');
+              } else {
+                console.error('uCharts 格式不正确，无法初始化');
+                errorMsg.value = '图表库格式不正确';
+              }
+            }
+          } catch (error) {
+            console.error('创建图表时发生错误:', error);
+            console.error('错误堆栈:', error.stack);
+          }
+        } else {
+          console.error('图表数据格式不正确:', options.series);
+        }
+      });
+    } catch (error) {
+      console.error('初始化图表时出错:', error);
+      console.error('错误堆栈:', error.stack);
+    }
+  }, 100);
 };
 
-// 组件挂载时获取数据
+// 添加触摸事件处理函数
+const tap = (e: any) => {
+  if (chartInstance) {
+    chartInstance.showToolTip(e, {
+      format: (item: any, category: any) => {
+        if (item && item.data !== undefined && !isNaN(item.data)) {
+          return category + ': ' + parseFloat(item.data).toFixed(2) + ' 元';
+        }
+        return category + ': 0.00 元';
+      }
+    });
+  }
+};
+
+const touchStart = (e: any) => {
+  if (chartInstance) {
+    chartInstance.scrollStart(e);
+  }
+};
+
+const touchMove = (e: any) => {
+  if (chartInstance) {
+    chartInstance.scroll(e);
+  }
+};
+
+const touchEnd = (e: any) => {
+  if (chartInstance) {
+    chartInstance.scrollEnd(e);
+  }
+};
+
+// 在组件卸载时清理
+onUnmounted(() => {
+  if (chartInstance) {
+    try {
+      chartInstance.destroy();
+    } catch (e) {
+      console.error('组件卸载时销毁图表实例出错:', e);
+    } finally {
+      chartInstance = null; // 确保清空引用
+    }
+  }
+});
+
+// 导出函数供模板使用
+defineExpose({
+  tap,
+  touchStart,
+  touchMove,
+  touchEnd
+});
+
+// 在组件挂载时获取数据
 onMounted(() => {
+  console.log('组件已挂载，开始获取十日数据');
   fetchTenDayData();
 });
 </script>
 
 <template>
   <div class="profit-chart-container">
-    <h2 class="chart-title">十日利润趋势</h2>
+    <div class="chart-header">
+      <div class="chart-title">十日利润趋势</div>
+      <div class="chart-subtitle">最近10天的净利润变化</div>
+    </div>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-state">
@@ -213,12 +385,40 @@ onMounted(() => {
     </div>
 
     <!-- 图表容器 -->
-    <canvas
-      v-else-if="tenDayData.length > 0"
-      canvas-id="tenDayProfitChart"
-      class="chart-canvas"
-      style="width: 100%; height: 400px;"
-    ></canvas>
+    <view v-else-if="tenDayData.length > 0" class="chart-wrapper">
+      <canvas
+          :id="canvasId"
+          :canvas-id="canvasId"
+          class="chart-canvas"
+          style="width: 100%; height: 300px;"
+          @tap="tap"
+          @touchstart="touchStart"
+          @touchmove="touchMove"
+          @touchend="touchEnd"
+      ></canvas>
+
+      <!-- 数据摘要 -->
+      <div class="data-summary">
+        <div class="summary-item">
+          <div class="summary-label">最高利润</div>
+          <div class="summary-value">
+            {{ Math.max(...tenDayData.map(item => item.netProfit)).toFixed(2) }} 元
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">最低利润</div>
+          <div class="summary-value">
+            {{ Math.min(...tenDayData.map(item => item.netProfit)).toFixed(2) }} 元
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">平均利润</div>
+          <div class="summary-value">
+            {{ (tenDayData.reduce((sum, item) => sum + item.netProfit, 0) / tenDayData.length).toFixed(2) }} 元
+          </div>
+        </div>
+      </div>
+    </view>
 
     <!-- 数据为空提示 -->
     <div v-else class="error-state">
@@ -232,15 +432,27 @@ onMounted(() => {
 .profit-chart-container {
   padding: 16px;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin: 16px;
+}
+
+.chart-header {
+  margin-bottom: 16px;
 }
 
 .chart-title {
-  margin: 0 0 16px 0;
   color: #303133;
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chart-subtitle {
+  color: #909399;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 4px;
 }
 
 .loading-state, .error-state {
@@ -248,7 +460,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 400px;
+  height: 300px;
   gap: 12px;
 }
 
@@ -256,9 +468,69 @@ onMounted(() => {
   color: #f56c6c;
 }
 
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .chart-canvas {
   border: 1px solid #f0f0f0;
-  border-radius: 4px;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.data-summary {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.summary-label {
+  color: #909399;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  color: #303133;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .profit-chart-container {
+    padding: 12px;
+    margin: 12px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+  }
+
+  .data-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .summary-item {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .summary-label, .summary-value {
+    font-size: 13px;
+  }
 }
 </style>
 

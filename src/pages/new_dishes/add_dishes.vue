@@ -13,7 +13,6 @@ const getUserEntityFromStorage = () => {
   }
 };
 
-
 // 获取 shopId
 const userEntity = getUserEntityFromStorage();
 const shopId = ref(userEntity && userEntity.shop ? userEntity.shop.id : null);
@@ -52,14 +51,19 @@ const fetchDishes = async () => {
       dish_name: item.dishName, // 将 dishName 转换为 dish_name
       // 若还有其他需要转换的字段，可在此继续添加
     }));
+
+    // 默认选中所有菜品
+    selectedItems.value = items.value.map(item => item.id);
   } catch (error) {
     console.error('获取菜品信息失败:', error);
   }
 };
+
 // 在组件挂载时调用 fetchDishes 函数
 onMounted(() => {
   fetchDishes();
 });
+
 const scrollTop = ref(0)
 const old = ref({
   scrollTop: 0
@@ -151,141 +155,331 @@ const handleCancel = () => {
     url: '/pages/new_dishes/new_dishes' // 替换为实际跳转的页面路径
   });
 };
+
+// 全选/取消全选功能
+const toggleSelectAll = () => {
+  if (selectedItems.value.length === items.value.length) {
+    // 如果已经全选，则取消全选
+    selectedItems.value = [];
+  } else {
+    // 否则全选
+    selectedItems.value = items.value.map(item => item.id);
+  }
+};
 </script>
 
 <template>
-  <view>
-    <view class="uni-padding-wrap uni-common-mt">
-      <view class="head">
-        <text>请选择你要新增的菜品</text>
-        <button class="Add_dishes" type="primary" size="mini" @click="handleSave">保存</button>
-        <button class="Delete_dishes" type="warn" size="mini" @click="handleCancel">取消</button>
-      </view>
-      <view class="uni-scroll-view">
-        <scroll-view :scroll-top="scrollTop" scroll-y="true" class="scroll-Y" @scrolltoupper="upper"
-                     @scrolltolower="lower" @scroll="scroll">
-          <!-- 使用 v-for 循环渲染视图 -->
-          <view v-for="item in items" :key="item.id" class="dish-box" >
-            <view class="dish-item">
-              <image :src="item.image" mode="aspectFit" class="dish-image"></image>
-              <view class="dish-info">
-                <view class="info-row">
-                  <text class="label">菜品名称：</text>
-                  <!-- 使用转换后的字段名 -->
-                  <text class="value">{{ item.dish_name }}</text>
-                </view>
-                <view class="info-row">
-                  <text class="label">价格：</text>
-                  <text class="value">¥{{ item.price }}</text>
-                </view>
-                <view class="info-row">
-                  <text class="label">分类：</text>
-                  <text class="value">{{ item.typeName }}</text>
-                </view>
-              </view>
-              <view class="dish-actions">
-                <checkbox-group @change="() => toggleSelection(item.id)">
-                  <label>
-                    <checkbox :value="item.id" :checked="selectedItems.includes(item.id)" />
-                  </label>
-                </checkbox-group>
-              </view>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-      <view @tap="goTop" class="uni-link uni-center uni-common-mt">
-        点击这里返回顶部
+  <view class="container">
+    <view class="header">
+      <text class="header-title">添加菜品</text>
+    </view>
+
+    <view class="instruction">
+      <text class="instruction-text">请选择要添加的菜品（默认全选）</text>
+    </view>
+
+    <view class="action-buttons">
+      <button class="action-btn save-btn" @click="handleSave">
+        <text class="btn-text">保存</text>
+      </button>
+      <button class="action-btn cancel-btn" @click="handleCancel">
+        <text class="btn-text">取消</text>
+      </button>
+    </view>
+
+    <view class="select-all-container">
+      <view class="select-all" @click="toggleSelectAll">
+        <view :class="['checkbox', selectedItems.length === items.length && items.length > 0 ? 'checked' : '']">
+          <text v-if="selectedItems.length === items.length && items.length > 0" class="checkmark">✓</text>
+        </view>
+        <text class="select-all-text">全选</text>
       </view>
     </view>
 
+    <view class="dish-list-container">
+      <scroll-view
+        :scroll-top="scrollTop"
+        scroll-y="true"
+        class="scroll-container"
+        @scrolltoupper="upper"
+        @scrolltolower="lower"
+        @scroll="scroll"
+      >
+        <view v-if="items.length === 0" class="empty-state">
+          <text class="empty-text">暂无菜品信息</text>
+        </view>
+
+        <!-- 使用 v-for 循环渲染视图 -->
+        <view v-for="item in items" :key="item.id" class="dish-card" @click="toggleSelection(item.id)">
+          <view class="dish-content">
+            <image
+              :src="item.image || '/static/images/placeholder.png'"
+              mode="aspectFill"
+              class="dish-image"
+            ></image>
+
+            <view class="dish-details">
+              <view class="dish-header">
+                <text class="dish-name">{{ item.dish_name }}</text>
+              </view>
+
+              <view class="dish-meta">
+                <view class="meta-item">
+                  <text class="meta-label">价格:</text>
+                  <text class="price">¥{{ item.price }}</text>
+                </view>
+                <view class="meta-item">
+                  <text class="meta-label">分类:</text>
+                  <text class="category">{{ item.typeName }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="selection-indicator">
+            <view :class="['checkbox', selectedItems.includes(item.id) ? 'checked' : '']">
+              <text v-if="selectedItems.includes(item.id)" class="checkmark">✓</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view @tap="goTop" class="back-to-top" v-if="scrollTop > 200">
+      <text class="top-text">回到顶部</text>
+    </view>
   </view>
 </template>
 
 <style scoped>
-.scroll-Y {
-  height: 100vh; /* 使用视口高度单位 */
+.container {
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
-.scroll-view-item {
-  height: 150px;
-  line-height: 300rpx;
+.header {
+  padding: 20rpx 0;
   text-align: center;
-  font-size: 36rpx;
-}
-
-/* 确保外层容器也填满屏幕 */
-.uni-scroll-view {
-  height: 100%;
-}
-
-.head {
-  height: 100rpx;
-  line-height: 100rpx;
-  text-align: center;
-  font-size: 36rpx;
-}
-
-.scroll-view-item {
-  border: 1px solid #ccc; /* 添加1像素灰色实线边框 */
-  border-radius: 8rpx; /* 添加8rpx的圆角 */
-  margin: 10rpx 0; /* 添加上下边距 */
-}
-
-.Add_dishes {
-  background-color: #007AFF;
-  float: right;
-}
-
-.Delete_dishes {
-  background-color: #FF0000;
-  float: right;
-}
-
-.dish-box {
-  display: flex;
-  height: 120px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  margin: 10px 0;
-  padding: 10px;
   background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
-.dish-item {
-  display: flex;
-  width: 100%;
-  align-items: center; /* 垂直居中 */
-  justify-content: space-between; /* 添加这行使内容分散对齐 */
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
 }
 
-.dish-actions {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.instruction {
+  background-color: #e8f5e9;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
 
+.instruction-text {
+  color: #4CAF50;
+  font-size: 28rpx;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
 }
 
 .action-btn {
-  margin: 5px 0;
-  padding: 0 10px;
-  height: 30px;
-  line-height: 30px;
+  flex: 1;
+  border-radius: 12rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-weight: bold;
 }
 
-.on-shelf {
-  background-color: #4CAF50;
-  color: white;
+.save-btn {
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.3);
 }
 
-.off-shelf {
-  background-color: #F44336;
-  color: white;
+.cancel-btn {
+  background: linear-gradient(90deg, #9E9E9E, #607D8B);
+  box-shadow: 0 4rpx 12rpx rgba(158, 158, 158, 0.3);
 }
+
+.btn-text {
+  color: white;
+  font-size: 28rpx;
+}
+
+.select-all-container {
+  background-color: #fff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.select-all-text {
+  margin-left: 20rpx;
+  font-size: 30rpx;
+  color: #333;
+}
+
+.dish-list-container {
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.scroll-container {
+  height: calc(100vh - 450rpx);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 30rpx;
+}
+
+.dish-card {
+  padding: 30rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+  display: flex;
+  align-items: center;
+}
+
+.dish-card:last-child {
+  border-bottom: none;
+}
+
+.dish-card:active {
+  background-color: #f5f5f5;
+}
+
+.dish-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+
 .dish-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 6px;
-  margin-right: 15px;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+  background-color: #f0f0f0;
+}
+
+.dish-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dish-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.dish-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.dish-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+}
+
+.meta-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-right: 10rpx;
+  width: 80rpx;
+}
+
+.price {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #F44336;
+}
+
+.category {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.selection-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 20rpx;
+}
+
+.checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox.checked {
+  background-color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.checkmark {
+  color: white;
+  font-weight: bold;
+  font-size: 24rpx;
+}
+
+.back-to-top {
+  position: fixed;
+  right: 30rpx;
+  bottom: 60rpx;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15rpx 25rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+}
+
+.top-text {
+  color: white;
 }
 </style>

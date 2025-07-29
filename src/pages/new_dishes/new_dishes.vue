@@ -186,137 +186,287 @@ onMounted(() => {
 </script>
 
 <template>
-  <view>
-    <view class="uni-padding-wrap uni-common-mt">
-      <view class="head">
-        <button class="Add_dishes" type="primary" size="mini" @click="navigateToAddDishes">添加菜品</button>
-        <button class="Delete_dishes" type="warn" size="mini" @click="navigateToDeleteDishes">删除菜品</button>
-      </view>
-      <view class="uni-scroll-view">
-        <scroll-view :scroll-top="scrollTop" scroll-y="true" class="scroll-Y" @scrolltoupper="upper"
-                     @scrolltolower="lower" @scroll="scroll">
-          <!-- 使用 v-for 循环渲染视图 -->
-          <view v-for="item in items" :key="item.id" class="dish-box" >
-            <view class="dish-item">
-              <image :src="item.image" mode="aspectFit" class="dish-image"></image>
-              <view class="dish-info">
-                <view class="info-row">
-                  <text class="label">菜品名称：</text>
-                  <text class="value">{{ item.dish_name }}</text>
-                </view>
-                <view class="info-row">
-                  <text class="label">价格：</text>
-                  <text class="value">¥{{ item.price }}</text>
-                </view>
-                <view class="info-row">
-                  <text class="label">分类：</text>
-                  <text class="value">{{ item.typeName }}</text>
+  <view class="container">
+    <view class="header">
+      <text class="header-title">菜品管理</text>
+    </view>
+
+    <view class="action-buttons">
+      <button class="action-btn add-btn" @click="navigateToAddDishes">
+        <text class="btn-text">添加菜品</text>
+      </button>
+      <button class="action-btn delete-btn" @click="navigateToDeleteDishes">
+        <text class="btn-text">删除菜品</text>
+      </button>
+    </view>
+
+    <view class="dish-list-container">
+      <scroll-view
+        :scroll-top="scrollTop"
+        scroll-y="true"
+        class="scroll-container"
+        @scrolltoupper="upper"
+        @scrolltolower="lower"
+        @scroll="scroll"
+      >
+        <view v-if="items.length === 0" class="empty-state">
+          <text class="empty-text">暂无菜品信息</text>
+        </view>
+
+        <!-- 使用 v-for 循环渲染视图 -->
+        <view v-for="item in items" :key="item.id" class="dish-card">
+          <view class="dish-content">
+            <image
+              :src="item.image || '/static/images/placeholder.png'"
+              mode="aspectFill"
+              class="dish-image"
+            ></image>
+
+            <view class="dish-details">
+              <view class="dish-header">
+                <text class="dish-name">{{ item.dish_name }}</text>
+                <view :class="['status-badge', item.status === '已上架' ? 'status-available' : 'status-unavailable']">
+                  {{ item.status }}
                 </view>
               </view>
-              <view class="dish-actions">
-                <button class="action-btn on-shelf" size="mini" @click.stop="onShelf(item.id)">
-                  {{ item.status === '已上架' ? '已上架' : '上架' }}
-                </button>
-                <button class="action-btn off-shelf" size="mini" @click.stop="offShelf(item.id)">
-                  {{ item.status === '已下架' ? '已下架' : '下架' }}
-                </button>
+
+              <view class="dish-meta">
+                <view class="meta-item">
+                  <text class="meta-label">价格:</text>
+                  <text class="price">¥{{ item.price }}</text>
+                </view>
+                <view class="meta-item">
+                  <text class="meta-label">分类:</text>
+                  <text class="category">{{ item.typeName }}</text>
+                </view>
               </view>
             </view>
           </view>
-        </scroll-view>
-      </view>
-      <view @tap="goTop" class="uni-link uni-center uni-common-mt">
-        点击这里返回顶部
-      </view>
+
+          <view class="dish-actions">
+            <button
+              :class="['action-button', item.status === '已上架' ? 'secondary-btn' : 'primary-btn']"
+              size="mini"
+              @click.stop="item.status === '已上架' ? offShelf(item.id) : onShelf(item.id)"
+            >
+              {{ item.status === '已上架' ? '下架' : '上架' }}
+            </button>
+          </view>
+        </view>
+      </scroll-view>
     </view>
 
+    <view @tap="goTop" class="back-to-top" v-if="scrollTop > 200">
+      <text class="top-text">回到顶部</text>
+    </view>
   </view>
 </template>
 
 <style scoped>
-.scroll-Y {
-  height: 100vh; /* 使用视口高度单位 */
+.container {
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
-.scroll-view-item {
-  height: 150px;
-  line-height: 300rpx;
+.header {
+  padding: 20rpx 0;
   text-align: center;
-  font-size: 36rpx;
-}
-
-/* 确保外层容器也填满屏幕 */
-.uni-scroll-view {
-  height: 100%;
-}
-
-.head {
-  height: 100rpx;
-  line-height: 100rpx;
-  text-align: center;
-  font-size: 36rpx;
-}
-
-.scroll-view-item {
-  border: 1px solid #ccc; /* 添加1像素灰色实线边框 */
-  border-radius: 8rpx; /* 添加8rpx的圆角 */
-  margin: 10rpx 0; /* 添加上下边距 */
-}
-
-.Add_dishes {
-  background-color: #007AFF;
-  float: right;
-}
-
-.Delete_dishes {
-  background-color: #FF0000;
-  float: right;
-}
-
-.dish-box {
-  display: flex;
-  height: 120px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  margin: 10px 0;
-  padding: 10px;
   background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
-.dish-item {
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.action-buttons {
   display: flex;
-  width: 100%;
-  align-items: center; /* 垂直居中 */
-  justify-content: space-between; /* 添加这行使内容分散对齐 */
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.action-btn {
+  flex: 1;
+  border-radius: 12rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-weight: bold;
+}
+
+.add-btn {
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.3);
+}
+
+.delete-btn {
+  background: linear-gradient(90deg, #F44336, #E91E63);
+  box-shadow: 0 4rpx 12rpx rgba(244, 67, 54, 0.3);
+}
+
+.btn-text {
+  color: white;
+  font-size: 28rpx;
+}
+
+.dish-list-container {
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.scroll-container {
+  height: calc(100vh - 320rpx);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 30rpx;
+}
+
+.dish-card {
+  padding: 30rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dish-card:last-child {
+  border-bottom: none;
+}
+
+.dish-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.dish-image {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+  background-color: #f0f0f0;
+}
+
+.dish-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dish-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.dish-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.status-badge {
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: bold;
+}
+
+.status-available {
+  background-color: #e8f5e9;
+  color: #4CAF50;
+}
+
+.status-unavailable {
+  background-color: #ffebee;
+  color: #F44336;
+}
+
+.dish-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+}
+
+.meta-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-right: 10rpx;
+  width: 80rpx;
+}
+
+.price {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #F44336;
+}
+
+.category {
+  font-size: 26rpx;
+  color: #666;
 }
 
 .dish-actions {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* 移除原来的 margin-left: 10px */
+  justify-content: flex-end;
 }
 
-.action-btn {
-  margin: 5px 0;
-  padding: 0 10px;
-  height: 30px;
-  line-height: 30px;
+.action-button {
+  border-radius: 8rpx;
+  padding: 0 30rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  font-size: 26rpx;
+  border: none;
 }
 
-.on-shelf {
-  background-color: #4CAF50;
+.primary-btn {
+  background: linear-gradient(90deg, #2196F3, #03A9F4);
   color: white;
 }
 
-.off-shelf {
-  background-color: #F44336;
-  color: white;
+.secondary-btn {
+  background-color: #e0e0e0;
+  color: #666;
 }
-.dish-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 6px;
-  margin-right: 15px;
+
+.back-to-top {
+  position: fixed;
+  right: 30rpx;
+  bottom: 60rpx;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15rpx 25rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+}
+
+.top-text {
+  color: white;
 }
 </style>

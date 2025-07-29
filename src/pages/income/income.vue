@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { baseUrl } from "@/router";
 import TenDayProfitChart from './TenDayProfitChart.vue';
+import ai from './ai.vue'
 // 从本地缓存获取 userEntity
 const getUserEntityFromStorage = () => {
   try {
@@ -129,9 +130,13 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
   <div>
-    <TenDayProfitChart />
+    <ai />
   </div>
+    <div>
+      <TenDayProfitChart />
+    </div>
 </template>
 
 <style scoped>
