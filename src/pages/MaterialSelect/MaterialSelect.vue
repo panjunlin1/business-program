@@ -90,28 +90,66 @@ const handleCancelAll = () => {
   });
 };
 
-// 确定：处理选中的材料（示例逻辑）
-const handleConfirm = () => {
+// 确定：处理选中的材料
+const handleConfirm = async () => {
   // 筛选出数量大于0的材料
   const selectedMaterials = orders.value.filter(item => item.quantity > 0);
   if (selectedMaterials.length === 0) {
-    uni.showToast({
+    await uni.showToast({
       title: '请选择材料',
       icon: 'none'
     });
     return;
   }
 
-  uni.request({
-    url: `${baseUrl}/mat/submit`,
-    method: 'POST',
-    data: selectedMaterials,
-    success: () => {
-      uni.showToast({ title: '选择成功', icon: 'success' });
-    }
-  });
+  try {
+    // 从本地存储获取商家ID
+    const {data: merchantId} = await uni.getStorage({key: 'merchantId'});
 
-};
+    if (!merchantId) {
+      await uni.showToast({title: '商家信息缺失，请重新登录', icon: 'none'});
+      return;
+    }
+
+    // 确保每个选中的材料都包含quantity字段
+    const materialsWithQuantity = selectedMaterials.map(material => ({
+      ...material,
+      quantity: material.quantity // 显式包含quantity字段
+    }));
+
+    // 合并商家ID与选中的材料数据
+    const submitData = {
+      merchantId,
+      materials: materialsWithQuantity
+    };
+
+    console.log('提交的数据:', submitData); // 调试用，确认数据格式
+
+    // 发送数据到后端
+    const res = await uni.request({
+      url: `${baseUrl}/mat/submit`,
+      method: 'POST',
+      data: submitData,
+      header: {
+        'Content-Type': 'application/json' // 确保设置正确的请求头
+      }
+    });
+
+    console.log('响应数据:', res);
+
+    if (res.statusCode === 200 && res.data.code === 0) {
+      await uni.showToast({title: '提交成功', icon: 'success'});
+    } else {
+      await uni.showToast({
+        title: res.data.msg || '提交失败',
+        icon: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('提交失败:', error);
+    await uni.showToast({title: '网络错误', icon: 'none'});
+  }
+}
 </script>
 
 <style scoped>

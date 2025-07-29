@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import {baseUrl} from "@/router";
 
 // 定义响应式数据
@@ -42,51 +42,28 @@ const phoneNumber = ref("");
 const showModal = ref(false);
 const userInfo = ref(null);
 
-
 // 加载存储数据
 const loadStorageData = async () => {
   try {
     // 获取 openid
-    uni.getStorage({
-      key: 'openid',
-      success: (res) => {
-        openid.value = res.data || "";
-        console.log("openid:"+openid.value);
-      },
-      fail: (err) => {
-        if (!err.errMsg.includes('data not found')) {
-          console.error("获取 openid 失败:", err);
-        }
-        getcode();
-      }
-    });
+    const openidRes = await uni.getStorage({ key: 'openid' });
+    openid.value = openidRes.data || "";
+    console.log("openid:" + openid.value);
 
     // 获取 userEntity
-    uni.getStorage({
-      key: 'userEntity',
-      success: (res) => {
-        userEntity.value = res.data || null;
-      },
-      fail: (err) => {
-        if (!err.errMsg.includes('data not found')) {
-          console.error("获取 userEntity 失败:", err);
-        }
-      }
-    });
+    const userEntityRes = await uni.getStorage({ key: 'userEntity' });
+    userEntity.value = userEntityRes.data || null;
 
     // 获取 loginstate
-    uni.getStorage({
-      key: 'loginstate',
-      success: (res) => {
-        loginstate.value = res.data || "0";
-        console.log("loginstate:"+loginstate.value);
-      },
-      fail: (err) => {
-        if (!err.errMsg.includes('data not found')) {
-          console.error("获取 loginstate 失败:", err);
-        }
-      }
-    });
+    const loginstateRes = await uni.getStorage({ key: 'loginstate' });
+    loginstate.value = loginstateRes.data || "0";
+    console.log("loginstate:" + loginstate.value);
+
+    // 获取商家ID
+    const merchantIdRes = await uni.getStorage({ key: 'merchantId' });
+    if (merchantIdRes.data) {
+      console.log('本地已存储的商家ID:', merchantIdRes.data);
+    }
   } catch (error) {
     console.error("加载存储数据失败:", error);
   }
@@ -132,12 +109,12 @@ const onGotUserInfo = (e: { detail: { errMsg: string; userInfo: any } }) => {
   if (e.detail.errMsg === "getUserInfo:ok") {
     userInfo.value = e.detail.userInfo;
     setStorage('userinfo', e.detail.userInfo)
-      .then(() => {
-        showDialogBtn();
-      })
-      .catch(() => {
-        // 存储失败时可以选择不弹出弹窗
-      });
+        .then(() => {
+          showDialogBtn();
+        })
+        .catch(() => {
+          // 存储失败时可以选择不弹出弹窗
+        });
   }
 };
 
@@ -158,6 +135,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
       console.error('userInfoVal 或 phoneNumberVal 为空', userInfoVal, phoneNumberVal);
       return;
     }
+
     const requestData = {
       username: phoneNumberVal,
       parentuser: 'xudeihai',
@@ -170,66 +148,44 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
       openid: openidVal,
     };
 
-    uni.request({
+    const res = await uni.request({
       url: baseUrl + '/shop/login',
       method: 'POST',
-      data: requestData,
-      success: (res) => {
-        if (
-          typeof res.data === 'object' &&
-          res.data !== null &&
-          'code' in res.data &&
-          res.data.code === 200 &&
-          'data' in res.data &&
-          typeof res.data.data === 'object' &&
-          res.data.data !== null
-        ) {
-          userEntity.value = res.data.data;
-          uni.setStorage({
-            key: "userEntity",
-            data: res.data.data,
-            success: () => {
-              console.log(res.data)
-              console.log('userEntity 存储成功');
-              // 使用 uni.switchTab 跳转到 TabBar 页面
-              uni.switchTab({
-                url: '/pages/my/my' // 请确保路径正确
-              });
-            },
-            fail: (err) => {
-              console.error('userEntity 存储失败', err);
-            }
-          });
-        } else {
-          console.log('响应数据不符合条件，响应数据:', res.data);
-        }
-        loginstate.value = "1";
-        uni.setStorage({
-          key: "loginstate",
-          data: "1",
-          success: () => {
-            console.log('loginstate 存储成功');
-          },
-          fail: (err) => {
-            console.error('loginstate 存储失败', err);
-          }
-        });
-        uni.setStorage({
-          key: 'userinfo',
-          data: "1",
-          success: () => {
-            console.log('userinfo 存储成功');
-            console.log("sssssssss"+userInfo.value);
-          },
-          fail: (err) => {
-            console.error('userinfo 存储失败', err);
-          }
-        });
-      },
-      fail: (error) => {
-        console.error("登录请求失败:", error);
-      }
+      data: requestData
     });
+
+    if (
+        res.data &&
+        res.data.code === 200 &&
+        res.data.data &&
+        typeof res.data.data === 'object'
+    ) {
+      userEntity.value = res.data.data;
+
+      // 存储完整用户信息
+      await setStorage("userEntity", res.data.data);
+      console.log('userEntity 存储成功:', res.data.data);
+
+      // 提取并存储商家ID
+      const merchantId = res.data.data?.shop?.id;
+      if (merchantId) {
+        await setStorage('merchantId', merchantId);
+        console.log('商家ID存储成功:', merchantId);
+      } else {
+        console.warn('用户数据中未找到商家ID，可能不是商家账号');
+      }
+
+      // 存储登录状态
+      loginstate.value = "1";
+      await setStorage("loginstate", "1");
+
+      // 跳转页面
+      await uni.switchTab({
+        url: '/pages/my/my'
+      });
+    } else {
+      console.log('登录失败，响应数据:', res.data);
+    }
   } catch (error) {
     console.error("登录失败:", error);
   }
@@ -238,7 +194,6 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
 // 获取手机号
 const getPhoneNumber = async (e: any) => {
   try {
-    // 检查 e.detail 是否存在
     if (!e.detail || !e.detail.encryptedData || !e.detail.iv) {
       console.error('获取手机号事件详情缺失必要数据', e.detail);
       return;
@@ -246,99 +201,41 @@ const getPhoneNumber = async (e: any) => {
 
     hideModal();
 
-    // 模拟微信的checkSession
-    const sessionValid = true; // 实际项目中需要实现会话检查
+    // 获取 openid 和 sessionkey
+    const loginRes = await uni.login();
+    const authRes = await uni.request({
+      url: baseUrl + '/shop/getopenid',
+      method: 'POST',
+      data: { code: loginRes.code }
+    });
 
-    // 封装获取 openid 和 sessionkey 的逻辑
-    const getOpenIdAndSessionKey = async () => {
-      const loginRes = await uni.login();
-      const getOpenIdData = {
-        code: loginRes.code
-      };
-      console.log('发送到后端的 openid 数据:', getOpenIdData);
-      return new Promise<{ openid: string; sessionkey: string }>((resolve, reject) => {
-        uni.request({
-          url: baseUrl + '/shop/getopenid',
-          method: 'POST',
-          data: getOpenIdData,
-          success: (authRes) => {
-            // 打印完整响应数据
-            console.log('后端返回的 openid 响应数据:', authRes.data);
-            if (
-              typeof authRes.data === 'object' &&
-              authRes.data !== null &&
-              'code' in authRes.data &&
-              authRes.data.code === 200 &&
-              'data' in authRes.data &&
-              typeof authRes.data.data === 'object' &&
-              authRes.data.data !== null &&
-              'openid' in authRes.data.data &&
-              'sessionkey' in authRes.data.data
-            ) {
-              const openid = authRes.data.data.openid;
-              const sessionkey = authRes.data.data.sessionkey;
-              resolve({ openid, sessionkey });
-            } else {
-              reject(new Error('获取 openid 或 sessionkey 失败'));
-            }
-          },
-          fail: (error) => {
-            reject(new Error('获取登录凭证失败: ' + error.errMsg));
-          }
-        });
-      });
-    };
+    if (authRes.data.code !== 200 || !authRes.data.data) {
+      throw new Error('获取 openid 失败');
+    }
 
-    // 封装解密手机号的逻辑
-    const decryptPhoneNumber = async (sessionkey: string) => {
-      const getPhoneData = {
+    const { openid: sessionOpenid, sessionkey } = authRes.data.data;
+
+    // 解密手机号
+    const decryptRes = await uni.request({
+      url: baseUrl + '/shop/getphone',
+      method: 'POST',
+      data: {
         encryptedData: e.detail.encryptedData,
         iv: e.detail.iv,
         code: sessionkey
-      };
-      console.log('发送到后端的获取手机号数据:', getPhoneData);
-      return new Promise<string>((resolve, reject) => {
-        uni.request({
-          url: baseUrl + '/shop/getphone',
-          method: 'POST',
-          data: getPhoneData,
-          success: (decryptRes) => {
-            // 打印完整响应数据
-            console.log('后端返回的解密手机号响应数据:', decryptRes.data);
-            if (
-              typeof decryptRes.data === 'object' &&
-              decryptRes.data !== null &&
-              'code' in decryptRes.data &&
-              decryptRes.data.code === 200 &&
-              'data' in decryptRes.data &&
-              typeof decryptRes.data.data === 'object' &&
-              decryptRes.data.data !== null &&
-              'phoneNumber' in decryptRes.data.data
-            ) {
-              resolve(decryptRes.data.data.phoneNumber);
-            } else {
-              reject(new Error('解密手机号失败'));
-            }
-          },
-          fail: (error) => {
-            reject(new Error('解密失败: ' + error.errMsg));
-          }
-        });
-      });
-    };
+      }
+    });
 
-    const { openid, sessionkey } = await getOpenIdAndSessionKey();
-    const phoneNumber = await decryptPhoneNumber(sessionkey);
-
-    if (!userInfo.value) {
-      console.error('用户信息为空，无法调用 onshow 函数');
-      return;
+    if (decryptRes.data.code !== 200 || !decryptRes.data.data) {
+      throw new Error('解密手机号失败');
     }
 
-    await onshow(openid, userInfo.value, phoneNumber);
+    const phoneNumber = decryptRes.data.data.phoneNumber;
+
+    // 登录
+    await onshow(sessionOpenid, userInfo.value, phoneNumber);
     uni.$emit('refreshOrderList');
     console.log("登录成功");
-    console.log(phoneNumber);
   } catch (error) {
     console.error("获取手机号失败:", error);
   }
@@ -346,7 +243,6 @@ const getPhoneNumber = async (e: any) => {
 
 // 获取 code
 const getcode = () => {
-  // 实现获取code的逻辑
   console.log("获取code");
 };
 
@@ -356,6 +252,7 @@ onMounted(() => {
   getSystemInfo();
 });
 </script>
+
 
 <style>
 /* 全局样式 */
