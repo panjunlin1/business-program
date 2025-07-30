@@ -2,11 +2,11 @@
   <div class="material-select-container">
     <!-- 材料列表区域（增加paddingBottom，避免被底部按钮遮挡） -->
     <scroll-view class="material-list" scroll-y>
-      <div class="material-item" v-for="(item, index) in materialList" :key="index">
+      <div class="material-item" v-for="(item, index) in orders" :key="index">
         <image class="material-img" :src="item.img" mode="widthFix"></image>
         <div class="material-info">
-          <div class="material-name">{{ item.name }}</div>
-          <div class="material-price">价格：{{ item.price }}￥</div>
+          <div class="material-name">{{ item.materialName }}</div>
+          <div class="material-price">价格：{{ item.materialPrice }}￥</div>
         </div>
         <div class="quantity-box">
           <button class="quantity-btn" @click="handleMinus(index)">-</button>
@@ -25,45 +25,62 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import {baseUrl} from "@/router";
+import {onMounted, ref} from "vue";
 
-// 模拟材料数据
-const materialList = ref([
-  {
-    img: 'https://example.com/material1.jpg', // 替换为实际图片地址
-    name: '材料1',
-    price: 10,
-    quantity: 1
-  },
-  {
-    img: 'https://example.com/material2.jpg',
-    name: '材料2',
-    price: 15,
-    quantity: 1
-  },
-  {
-    img: 'https://example.com/material3.jpg',
-    name: '材料3',
-    price: 20,
-    quantity: 0 // 初始可设为0，代表未选择
-  }
-]);
+const orders = ref([]);
+const error = ref('');
+
+onMounted(() => {
+  // 发起请求
+  uni.request({
+    url: `${baseUrl}/mat/material`,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    success: (res) => {
+      if (res.statusCode === 200) {
+        if (res.data.code === 200 && res.data.data) {
+          // 初始化数据，添加 quantity 字段
+          orders.value = res.data.data.map(item => ({
+            ...item,
+            quantity: 0, // 为每个材料添加初始数量
+            img: item.img // 设置默认图片
+          }));
+          console.log('物料加载成功:', orders.value);
+        } else {
+          error.value = res.data.msg || '获取物料失败';
+          console.error('物料接口返回错误:', res.data);
+        }
+      } else {
+        error.value = `HTTP 错误: ${res.statusCode}`;
+        console.error('HTTP 请求失败:', res);
+      }
+    },
+    fail: (err) => {
+      error.value = '网络请求失败';
+      console.error('请求失败:', err);
+    }
+  });
+});
+
 
 // 数量减操作
 const handleMinus = (index) => {
-  if (materialList.value[index].quantity > 0) {
-    materialList.value[index].quantity--;
+  if (orders.value[index].quantity > 0) {
+    orders.value[index].quantity--;
   }
 };
 
 // 数量加操作
 const handlePlus = (index) => {
-  materialList.value[index].quantity++;
+  orders.value[index].quantity++;
 };
 
 // 全部取消：重置所有材料数量为0
 const handleCancelAll = () => {
-  materialList.value.forEach(item => {
+  orders.value.forEach(item => {
     item.quantity = 0;
   });
   // 可添加提示
@@ -73,25 +90,66 @@ const handleCancelAll = () => {
   });
 };
 
-// 确定：处理选中的材料（示例逻辑）
-const handleConfirm = () => {
+// 确定：处理选中的材料
+const handleConfirm = async () => {
   // 筛选出数量大于0的材料
-  const selectedMaterials = materialList.value.filter(item => item.quantity > 0);
+  const selectedMaterials = orders.value.filter(item => item.quantity > 0);
   if (selectedMaterials.length === 0) {
-    uni.showToast({
+    await uni.showToast({
       title: '请选择材料',
       icon: 'none'
     });
     return;
   }
-  // 处理选中的材料（如提交到后端、跳转页面等）
-  console.log('选中的材料：', selectedMaterials);
-  uni.showToast({
-    title: '选择成功',
-    icon: 'success'
-  });
-  // 如需返回上一页，可添加：uni.navigateBack();
-};
+
+  try {
+    // 从本地存储获取商家ID
+    const {data: merchantId} = await uni.getStorage({key: 'merchantId'});
+
+    if (!merchantId) {
+      await uni.showToast({title: '商家信息缺失，请重新登录', icon: 'none'});
+      return;
+    }
+
+    // 确保每个选中的材料都包含quantity字段
+    const materialsWithQuantity = selectedMaterials.map(material => ({
+      ...material,
+      quantity: material.quantity // 显式包含quantity字段
+    }));
+
+    // 合并商家ID与选中的材料数据
+    const submitData = {
+      merchantId,
+      materials: materialsWithQuantity
+    };
+
+    console.log('提交的数据:', submitData); // 调试用，确认数据格式
+
+    // 发送数据到后端
+    const res = await uni.request({
+      url: `${baseUrl}/mat/submit`,
+      method: 'POST',
+      data: submitData,
+      header: {
+        'Content-Type': 'application/json' // 确保设置正确的请求头
+      }
+    });
+
+    console.log('响应数据:', res);
+
+    if (res.statusCode === 200 && res.data.code === 0) {
+      await uni.showToast({title: '提交成功', icon: 'success'});
+    } else {
+      await uni.showToast({
+        title: res.data.msg || '提交失败',
+        icon: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('提交失败:', error);
+    await uni.showToast({title: '网络错误', icon: 'none'});
+  }
+}
 </script>
 
 <style scoped>

@@ -4,8 +4,8 @@
     <div class="order-item">
       <div class="order-f1">
         <div class="data-pair">
-          <span class="label">ID：</span>
-          <span class="span">{{ order.shopid }}</span>
+          <span class="label">客户ID：</span>
+          <span class="span">{{ order.userid }}</span>
         </div>
         <div class="data-pair">
           <span class="label">订单号：</span>
@@ -13,7 +13,7 @@
         </div>
         <div class="data-pair">
           <span class="label">联系电话：</span>
-          <span class="span">{{ order.phoneNum }}</span>
+          <span class="span">{{ userData.userPhone }}</span>
         </div>
         <div class="data-pair">
           <span class="label">下单时间：</span>
@@ -131,7 +131,7 @@ const getOrderUserById = (userId) => {
   return request(`${baseUrl}/api/orders/user/${userId}`);
 };
 
-// 2. 定义获取用户列表的方法
+// 3. 定义获取订单详情列表的方法
 const getOrderUserDetailsById = (userId) => {
   // 接口路径调整为获取列表（假设后端列表接口为 /api/orders）
   return request(`${baseUrl}/api/orders/user/${userId}/details`);
@@ -160,7 +160,7 @@ onLoad(async (options) => {
     console.log("userData:",userData);
 
     userDetails.value = Array.isArray(data2)
-        ? data2.find(item => item.id.toString() === orderId)  // 注意类型转换（接口返回可能是数字，orderId是字符串）
+        ? data2.find(item => item.id.toString() === orderId)
         : data2;
 
     console.log("userDetails:",userDetails);
@@ -176,6 +176,9 @@ onLoad(async (options) => {
     error.value = err.message;
   } finally {
     loading.value = false;
+    if (userData.value) { // 确保 userData 已加载
+      handleUpdateUserInfo();
+    }
   }
 });
 
@@ -234,6 +237,16 @@ const handleReject = async () => {
   } catch (err) {
     await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
   }
+};
+
+// 假设在某个操作后需要传递 userData 回列表页
+const handleUpdateUserInfo = () => {
+  // 1. 假设 userData 已更新（例如：userData.value.userPhone = '139xxxx'）
+  console.log('准备传递的 userData:', userData.value);
+
+  // 2. 触发事件，传递数据
+  uni.$emit('sendUserDataToOrder', userData.value);
+
 };
 
 </script>

@@ -33,7 +33,7 @@
         </div>
         <div class="data-pair">
           <span class="label">联系电话：</span>
-          <span class="span">{{ order.phoneNum }}</span>
+          <span class="span">{{ userPhoneMap.get(order.userid) || '点击查看详情' }}</span>
         </div>
         <div class="data-pair">
           <span class="label">下单时间：</span>
@@ -83,6 +83,7 @@ const loading = ref(false); // 加载状态
 const currentStatus = ref(''); // 当前筛选状态
 const error = ref(''); // 错误信息
 const userEntity = ref(null);
+const userPhoneMap = ref(new Map()); // 用户电话
 
 
 // 初始化：检查登录状态并加载订单
@@ -107,7 +108,7 @@ const checkLoginStatus = () => {
   console.log('loginstate:', loginstate);
   console.log('userEntity:', userEntity);
 
-  // 从 userEntity 中获取 token（关键修改！）
+  // 从 userEntity 中获取 token
   const token = userEntity?.token || '';
   console.log('token:', token);
 
@@ -116,13 +117,11 @@ const checkLoginStatus = () => {
   console.log('最终登录状态:', isLogin.value);
 };
 
-
 // 加载订单列表
 const loadOrders = async () => {
   try {
     loading.value = true;
     const token = uni.getStorageSync('token');
-
     const res = await uni.request({
       url: `${baseUrl}/api/orders`,
       method: 'GET',
@@ -163,10 +162,24 @@ onLoad(() => {
 });
 
 onShow(() => {
+
+  uni.$off('refreshOrderList');
+  uni.$off('sendUserDataToOrder');
+
   // 页面显示时，监听刷新事件
   uni.$on('refreshOrderList', async () => {
     if (isLogin.value) {
       await loadOrders(); // 重新加载订单列表
+    }
+  });
+
+  // 监听用户数据传递事件
+  uni.$on('sendUserDataToOrder', (receivedData) => {
+    console.log('接收的用户数据:', receivedData);
+    // 存储“userid（即receivedData.id）-> userPhone”的映射
+    if (receivedData.id && receivedData.userPhone) {
+      userPhoneMap.value.set(receivedData.id, receivedData.userPhone);
+      console.log('映射关系已更新:', userPhoneMap.value);
     }
   });
 
@@ -184,6 +197,7 @@ onShow(() => {
 // 页面卸载时移除监听，避免内存泄漏
 onUnload(() => {
   uni.$off('refreshOrderList');
+  uni.$off('sendUserDataToOrder');
 });
 
 
@@ -215,7 +229,6 @@ const filteredOrder = computed(() => {
       result = result.filter(order => order.status === currentStatus.value);
     }
   }
-
   // 再筛选出 id 的订单（核心新增逻辑）
   return result.filter(order => order.shopid === userEntity.value?.shop?.id);
 });
@@ -237,7 +250,6 @@ const handleOrderClick = (orderId: string, userId: string) => {
     url: `/pages/OrderDetails/OrderDetails?orderId=${encodeURIComponent(orderId)}&userId=${encodeURIComponent(userId)}`
   });
 };
-
 
 </script>
 
