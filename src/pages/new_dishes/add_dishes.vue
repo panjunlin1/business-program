@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
 import { baseUrl } from "@/router";
 
 // 从本地缓存获取 userEntity
@@ -21,6 +21,54 @@ const shopId = ref(userEntity && userEntity.shop ? userEntity.shop.id : null);
 const items = ref([
   // 可以继续添加更多项
 ])
+
+const selectedCategory = ref('全部');
+const searchKeyword = ref('');
+const showFilterPanel = ref(false);
+
+// 计算菜品分类列表
+const categories = computed(() => {
+  const categorySet = new Set<string>();
+  items.value.forEach(item => {
+    if (item.typeName) {
+      categorySet.add(item.typeName);
+    }
+  });
+  return ['全部', ...Array.from(categorySet)];
+});
+
+// 计算筛选后的菜品列表
+const filteredItems = computed(() => {
+  let result = items.value;
+
+  // 按分类筛选
+  if (selectedCategory.value !== '全部') {
+    result = result.filter(item => item.typeName === selectedCategory.value);
+  }
+
+  // 按关键字搜索（菜品名称）
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase();
+    result = result.filter(item =>
+      item.dish_name.toLowerCase().includes(keyword) ||
+      (item.typeName && item.typeName.toLowerCase().includes(keyword))
+    );
+  }
+
+  return result;
+});
+
+// 当前筛选条件描述
+const filterDescription = computed(() => {
+  const conditions = [];
+  if (searchKeyword.value) {
+    conditions.push(`搜索"${searchKeyword.value}"`);
+  }
+  if (selectedCategory.value !== '全部') {
+    conditions.push(`分类"${selectedCategory.value}"`);
+  }
+  return conditions.length > 0 ? conditions.join('，') : '全部菜品';
+});
 
 const fetchDishes = async () => {
   try {
@@ -158,13 +206,39 @@ const handleCancel = () => {
 
 // 全选/取消全选功能
 const toggleSelectAll = () => {
-  if (selectedItems.value.length === items.value.length) {
+  if (selectedItems.value.length === filteredItems.value.length && filteredItems.value.length > 0) {
     // 如果已经全选，则取消全选
     selectedItems.value = [];
   } else {
     // 否则全选
-    selectedItems.value = items.value.map(item => item.id);
+    selectedItems.value = filteredItems.value.map(item => item.id);
   }
+};
+
+// 清除搜索关键字
+const clearSearch = () => {
+  searchKeyword.value = '';
+};
+
+// 显示筛选面板
+const toggleFilterPanel = () => {
+  showFilterPanel.value = !showFilterPanel.value;
+};
+
+// 关闭筛选面板
+const closeFilterPanel = () => {
+  showFilterPanel.value = false;
+};
+
+// 重置所有筛选条件
+const resetFilters = () => {
+  searchKeyword.value = '';
+  selectedCategory.value = '全部';
+};
+
+// 应用筛选条件
+const applyFilters = () => {
+  showFilterPanel.value = false;
 };
 </script>
 
@@ -187,10 +261,21 @@ const toggleSelectAll = () => {
       </button>
     </view>
 
+    <!-- 筛选控制栏 -->
+    <view class="filter-control">
+      <view class="filter-summary">
+        <text class="filter-text">筛选: {{ filterDescription }}</text>
+      </view>
+      <button class="filter-button" @click="toggleFilterPanel">
+        <image class="filter-icon" src="/static/icon/screening.png"></image>
+        <text class="filter-btn-text">筛选</text>
+      </button>
+    </view>
+
     <view class="select-all-container">
       <view class="select-all" @click="toggleSelectAll">
-        <view :class="['checkbox', selectedItems.length === items.length && items.length > 0 ? 'checked' : '']">
-          <text v-if="selectedItems.length === items.length && items.length > 0" class="checkmark">✓</text>
+        <view :class="['checkbox', selectedItems.length === filteredItems.length && filteredItems.length > 0 ? 'checked' : '']">
+          <text v-if="selectedItems.length === filteredItems.length && filteredItems.length > 0" class="checkmark">✓</text>
         </view>
         <text class="select-all-text">全选</text>
       </view>
@@ -205,12 +290,17 @@ const toggleSelectAll = () => {
         @scrolltolower="lower"
         @scroll="scroll"
       >
-        <view v-if="items.length === 0" class="empty-state">
-          <text class="empty-text">暂无菜品信息</text>
+        <view class="results-info" v-if="searchKeyword || selectedCategory !== '全部'">
+          <text class="results-text">找到 {{ filteredItems.length }} 个结果</text>
+          <text class="clear-filter" @click="resetFilters">清除筛选</text>
+        </view>
+
+        <view v-if="filteredItems.length === 0" class="empty-state">
+          <text class="empty-text">暂无匹配的菜品信息</text>
         </view>
 
         <!-- 使用 v-for 循环渲染视图 -->
-        <view v-for="item in items" :key="item.id" class="dish-card" @click="toggleSelection(item.id)">
+        <view v-for="item in filteredItems" :key="item.id" class="dish-card" @click="toggleSelection(item.id)">
           <view class="dish-content">
             <image
               :src="item.image || '/static/images/placeholder.png'"
@@ -247,6 +337,54 @@ const toggleSelectAll = () => {
 
     <view @tap="goTop" class="back-to-top" v-if="scrollTop > 200">
       <text class="top-text">回到顶部</text>
+    </view>
+
+    <!-- 筛选面板 -->
+    <view v-if="showFilterPanel" class="filter-overlay" @click="closeFilterPanel">
+      <view class="filter-panel" @click.stop>
+        <view class="filter-header">
+          <text class="filter-title">筛选条件</text>
+          <text class="close-icon" @click="closeFilterPanel">×</text>
+        </view>
+
+        <!-- 搜索框 -->
+        <view class="filter-section">
+          <text class="section-title">搜索</text>
+          <view class="search-container">
+            <view class="search-box">
+              <image class="search-icon" src="/static/icon/search.png"></image>
+              <input
+                class="search-input"
+                placeholder="搜索菜品名称或分类"
+                v-model="searchKeyword"
+                @confirm="applyFilters"
+              />
+              <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 分类筛选 -->
+        <view class="filter-section">
+          <text class="section-title">分类</text>
+          <view class="category-grid">
+            <view
+              v-for="category in categories"
+              :key="category"
+              :class="['category-item', selectedCategory === category ? 'active' : '']"
+              @click="selectedCategory = category"
+            >
+              <text class="category-text">{{ category }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="filter-actions">
+          <button class="reset-btn" @click="resetFilters">重置</button>
+          <button class="apply-btn" @click="applyFilters">应用</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -319,6 +457,47 @@ const toggleSelectAll = () => {
   font-size: 28rpx;
 }
 
+/* 筛选控制栏 */
+.filter-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  padding: 20rpx;
+}
+
+.filter-summary {
+  flex: 1;
+}
+
+.filter-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  background-color: #2196F3;
+  border: none;
+  border-radius: 6rpx;
+  padding: 6rpx 12rpx;
+}
+
+.filter-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 6rpx;
+}
+
+.filter-btn-text {
+  color: white;
+  font-size: 24rpx;
+}
+
 .select-all-container {
   background-color: #fff;
   padding: 20rpx;
@@ -347,7 +526,26 @@ const toggleSelectAll = () => {
 }
 
 .scroll-container {
-  height: calc(100vh - 450rpx);
+  height: calc(100vh - 520rpx);
+}
+
+.results-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  background-color: #e3f2fd;
+}
+
+.results-text {
+  color: #1976d2;
+  font-size: 26rpx;
+}
+
+.clear-filter {
+  color: #f44336;
+  font-size: 24rpx;
+  text-decoration: underline;
 }
 
 .empty-state {
@@ -481,5 +679,168 @@ const toggleSelectAll = () => {
 
 .top-text {
   color: white;
+}
+
+/* 筛选面板 */
+.filter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.filter-panel {
+  width: 90%;
+  max-width: 600rpx;
+  background-color: white;
+  border-radius: 16rpx;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.filter-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.close-icon {
+  font-size: 40rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+.filter-section {
+  padding: 20rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+/* 搜索框样式 */
+.search-container {
+  margin-bottom: 10rpx;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+}
+
+.search-icon {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 10rpx;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 28rpx;
+  outline: none;
+  padding: 10rpx 0;
+}
+
+.clear-icon {
+  font-size: 36rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+/* 分类网格 */
+.category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.category-item {
+  padding: 15rpx 30rpx;
+  border-radius: 30rpx;
+  background-color: #f5f5f5;
+  transition: all 0.3s;
+}
+
+.category-item.active {
+  background: linear-gradient(90deg, #2196F3, #03A9F4);
+}
+
+.category-item.active .category-text {
+  color: white;
+}
+
+.category-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 筛选操作按钮 */
+.filter-actions {
+  display: flex;
+  padding: 20rpx;
+  gap: 20rpx;
+}
+
+.reset-btn, .apply-btn {
+  flex: 1;
+  border-radius: 8rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  border: none;
+}
+
+.reset-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.apply-btn {
+  background: linear-gradient(90deg, #2196F3, #03A9F4);
+  color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .filter-panel {
+    width: 95%;
+  }
+
+  .category-grid {
+    gap: 15rpx;
+  }
+
+  .category-item {
+    padding: 12rpx 25rpx;
+  }
 }
 </style>

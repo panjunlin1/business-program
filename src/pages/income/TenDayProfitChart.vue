@@ -209,7 +209,8 @@ const renderChart = () => {
           series: [{
             name: '净利润',
             data: seriesData,
-            color: '#409eff'
+            color: '#409eff',
+            pointShape: 'none' // 明确指定点形状
           }],
           xAxis: {
             disableGrid: true,
@@ -229,6 +230,12 @@ const renderChart = () => {
           dataPointShape: true,
           animation: false,
           fontSize: 5, // 减小整体字体
+          extra: {
+            line: {
+              type: 'straight',
+              width: 1 // 减小线条宽度
+            }
+          }
         };
 
         // 销毁之前的图表实例
@@ -255,47 +262,67 @@ const renderChart = () => {
             if (!chartInstance && uCharts) {
               console.log('uCharts 类型:', typeof uCharts);
               console.log('uCharts 内容:', uCharts);
+              console.log('Canvas Context:', canvasContext);
+
+              // 添加更多检查
+              if (!canvasContext) {
+                console.error('Canvas context 为空');
+                errorMsg.value = '无法获取 Canvas 上下文';
+                return;
+              }
 
               // 检查 uCharts 的正确使用方式
+              let chartOptions = {
+                ...options,
+                context: canvasContext
+              };
+
+              console.log('即将使用的图表配置:', chartOptions);
+
               if (typeof uCharts === 'function') {
                 // uCharts 是构造函数
-                chartInstance = new uCharts({
-                  ...options,
-                  context: canvasContext
-                });
+                console.log('使用 new uCharts() 方式创建图表');
+                chartInstance = new uCharts(chartOptions);
                 console.log('使用 new uCharts() 创建图表成功');
               } else if (typeof uCharts === 'object' && uCharts.default && typeof uCharts.default === 'function') {
                 // uCharts 有 default 导出且是构造函数
-                chartInstance = new uCharts.default({
-                  ...options,
-                  context: canvasContext
-                });
+                console.log('使用 new uCharts.default() 方式创建图表');
+                chartInstance = new uCharts.default(chartOptions);
                 console.log('使用 new uCharts.default() 创建图表成功');
               } else if (typeof uCharts === 'object' && typeof uCharts.init === 'function') {
                 // uCharts 有 init 方法
-                chartInstance = uCharts.init({
-                  ...options,
-                  context: canvasContext
-                });
+                console.log('使用 uCharts.init() 方式创建图表');
+                chartInstance = uCharts.init(chartOptions);
                 console.log('使用 uCharts.init() 创建图表成功');
               } else if (typeof uCharts === 'function') {
                 // 直接调用 uCharts 函数
-                chartInstance = uCharts({
-                  ...options,
-                  context: canvasContext
-                });
+                console.log('使用 uCharts() 方式创建图表');
+                chartInstance = uCharts(chartOptions);
                 console.log('使用 uCharts() 创建图表成功');
               } else {
-                console.error('uCharts 格式不正确，无法初始化');
+                console.error('uCharts 格式不正确，无法初始化:', typeof uCharts, uCharts);
                 errorMsg.value = '图表库格式不正确';
+                return;
+              }
+              console.log('图表创建完成');
+            } else {
+              console.log('chartInstance:', chartInstance, 'uCharts:', uCharts);
+              if (chartInstance) {
+                console.warn('图表实例已存在');
+              }
+              if (!uCharts) {
+                console.error('uCharts 未定义');
+                errorMsg.value = '图表库未正确加载';
               }
             }
           } catch (error) {
             console.error('创建图表时发生错误:', error);
             console.error('错误堆栈:', error.stack);
+            errorMsg.value = '创建图表失败: ' + error.message;
           }
         } else {
           console.error('图表数据格式不正确:', options.series);
+          errorMsg.value = '图表数据格式不正确';
         }
       });
     } catch (error) {
