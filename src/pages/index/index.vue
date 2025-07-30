@@ -62,7 +62,7 @@
           @tap="navigateToDelivery"
       >
         <image src="../../static/icon/hy.png" mode="aspectFit"></image>
-        <text class="grid-text">会员管理</text>
+        <text class="grid-text">材料订单</text>
       </div>
 
       <div
@@ -151,7 +151,7 @@ const navigateToDineIn = () => {
 
 const navigateToDelivery = () => {
   uni.navigateTo({
-    url: ''
+    url: '/pages/MaterialOrder/MaterialOrder'
   });
 };
 

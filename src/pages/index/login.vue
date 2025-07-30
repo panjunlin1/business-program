@@ -154,6 +154,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
       data: requestData
     });
 
+
     if (
         res.data &&
         res.data.code === 200 &&
@@ -164,7 +165,7 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
 
       // 存储完整用户信息
       await setStorage("userEntity", res.data.data);
-      console.log('userEntity 存储成功:', res.data.data);
+      console.log('res.data.data:', res.data.data);
 
       // 提取并存储商家ID
       const merchantId = res.data.data?.shop?.id;

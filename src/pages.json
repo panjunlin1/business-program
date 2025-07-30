@@ -33,7 +33,7 @@
 		{
 			"path": "pages/MaterialSelect/MaterialSelect",
 			"style": {
-				"navigationBarTitleText": "材料选择"
+				"navigationBarTitleText": "材料选购"
 			}
 		},
 		{
@@ -58,6 +58,12 @@
 			"path": "pages/new_dishes/new_dishes",
 			"style": {
 				"navigationBarTitleText": "上架菜品"
+			}
+		},
+		{
+			"path": "pages/MaterialOrder/MaterialOrder",
+			"style": {
+				"navigationBarTitleText": "材料订单"
 			}
 		}
 	],
