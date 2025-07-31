@@ -1,55 +1,56 @@
 <template>
   <div class="order-detail-container">
-    <!-- 标题区域 -->
-    <div class="order-item">
-      <div class="order-f1">
-        <div class="data-pair">
-          <span class="label">客户ID：</span>
-          <span class="span">{{ order.userid }}</span>
+    <!-- 标题区域（红框部分，新增统一容器样式） -->
+    <div class="info-card">
+      <div class="order-item">
+        <div class="order-f1">
+          <div class="data-pair">
+            <span class="label">客户ID：</span>
+            <span class="span">{{ order.userid }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">订单号：</span>
+            <span class="span">{{ order.id }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">联系电话：</span>
+            <span class="span">{{ userData.userPhone }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">下单时间：</span>
+            <span class="span time-text">{{ order.ordertime }}</span>
+          </div>
         </div>
-        <div class="data-pair">
-          <span class="label">订单号：</span>
-          <span class="span">{{ order.id }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">联系电话：</span>
-          <span class="span">{{ userData.userPhone }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">下单时间：</span>
-          <span class="span time-text">{{ order.ordertime }}</span>
-        </div>
-      </div>
-      <div class="order-f1">
-        <div class="data-pair">
-          <span class="label">状态：</span>
-          <span class="span status-tag" :class="{
-          'status-2': order.status === '2',
-          'status-4': order.status === '4',
-          'status-5': order.status === '5',
-          'status-6': order.status === '6',
-          'status-8': order.status === '8'}">
-            {{ getStatusText(order.status) }}
-          </span>
-        </div>
-        <div class="data-pair">
-          <span class="label">用餐方式：</span>
-          <span class="span">{{ order.diningChoice }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">支付方式：</span>
-          <span class="span">{{ order.paymentmethod }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">总价：</span>
-          <span class="span totalPrice-tag">{{ order.totalprice }}￥</span>
+        <div class="order-f1">
+          <div class="data-pair">
+            <span class="label">状态：</span>
+            <span class="span status-tag" :class="{
+              'status-2': order.status === '2',
+              'status-4': order.status === '4',
+              'status-5': order.status === '5',
+              'status-6': order.status === '6',
+              'status-8': order.status === '8'}">
+              {{ getStatusText(order.status) }}
+            </span>
+          </div>
+          <div class="data-pair">
+            <span class="label">用餐方式：</span>
+            <span class="span">{{ order.diningChoice }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">支付方式：</span>
+            <span class="span">{{ order.paymentmethod }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">总价：</span>
+            <span class="span totalPrice-tag">{{ order.totalprice }}￥</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 商品列表区域 -->
+    <!-- 商品列表区域（已有样式，保持结构） -->
     <div class="product-list">
-<!--      <p class="product-list-title">用户选择的所有商品：从上往下一一列举，包含菜品名称、价格、数量</p>-->
       <div
           class="product-item"
           v-for="(product, index) in userDetails.items"
@@ -60,7 +61,7 @@
       </div>
     </div>
 
-    <!-- 用户信息区域 -->
+    <!-- 用户信息区域（已有样式，保持结构） -->
     <div class="user-info">
       <div class="order-info-item">
         <span class="info-label">用户名称：</span>
@@ -261,13 +262,23 @@ const handleUpdateUserInfo = () => {
   box-sizing: border-box;
 }
 
+/* 新增通用卡片样式，让红框、商品列表、用户信息区域样式统一 */
+.info-card,
+.product-list,
+.user-info {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
 /* 订单部分信息样式 */
 .order-item {
   display: flex;
   font-size: 20px;
 }
 
-/* 信息排列方式 */
 .order-f1 {
   width: 140px;
   height: 100%;
@@ -278,33 +289,28 @@ const handleUpdateUserInfo = () => {
   flex-direction: column;
 }
 
-/* 新增数据对容器样式 */
 .data-pair {
   display: flex;
-  align-items: flex-start; /* 顶部对齐 */
+  align-items: flex-start;
   margin-bottom: 5px;
-  min-height: 24px; /* 确保每一行有最小高度 */
+  min-height: 24px;
 }
 
-/* 新增标签样式 */
 .label {
   font-weight: bold;
   color: #333;
   margin-right: 5px;
-  min-width: 50px; /* 确保标签宽度一致，排版整齐 */
-  padding-top: 2px; /* 微调标签位置 */
+  min-width: 50px;
+  padding-top: 2px;
 }
 
-
-/* 信息文本处理 */
 .span {
-  padding-top: 2px; /* 与标签对齐 */
-  white-space: nowrap; /* 禁止文本换行 */
-  overflow: hidden; /* 隐藏溢出部分 */
-  text-overflow: ellipsis; /* 显示省略号 */
+  padding-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 信息项通用样式 */
 .order-info-item {
   display: flex;
   padding: 10px 0;
@@ -312,12 +318,11 @@ const handleUpdateUserInfo = () => {
   flex-wrap: wrap;
 }
 
-/* 标签通用样式 */
 .info-label {
   color: #666;
   font-size: 16px;
   font-weight: 500;
-  width: 120px; /* 固定标签宽度 */
+  width: 120px;
   text-align: right;
   margin-right: 10px;
 }
@@ -325,22 +330,16 @@ const handleUpdateUserInfo = () => {
 .time-text {
   white-space: normal;
   word-wrap: break-word;
-  width: 100px; /* 按需调整，比如让时间在一定宽度内换行 */
+  width: 100px;
 }
 
-/* 值通用样式 */
 .info-value {
   color: #333;
   font-size: 16px;
 }
 
-/* 商品列表样式 */
 .product-list {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  margin-bottom: 20px;
+  /* 已有样式，若需调整可在此补充，保持和 info-card 一致即可 */
 }
 
 .product-item {
@@ -350,45 +349,31 @@ const handleUpdateUserInfo = () => {
   border-bottom: 1px dashed #eee;
 }
 
-/* 已接取状态样式 */
 .status-tag.status-2 {
-  color: #ffb74d; /* 文字颜色 */
-  background-color: #fff8e1; /* 浅黄色背景 */
+  color: #ffb74d;
+  background-color: #fff8e1;
 }
 
-/* 价格标签特殊样式 */
 .status-tag.status-4 {
-  color:  #ef5350; /* 文字颜色 */
-  background-color: #ffebee; /* 浅红色背景 */
+  color:  #ef5350;
+  background-color: #ffebee;
 }
 
-/* 已取消状态样式 */
 .status-tag.status-5 {
-  color:  #9e9e9e; /* 文字颜色 */
-  background-color: #f5f5f5; /* 浅灰色背景 */
+  color:  #9e9e9e;
+  background-color: #f5f5f5;
 }
 
-/* 状态标签特殊样式 */
 .status-tag.status-6 {
-  color: #4caf50; /* 文字颜色 */
-  background-color: #f1f8e9; /* 浅绿色背景 */
+  color: #4caf50;
+  background-color: #f1f8e9;
 }
 
 .status-tag.status-8 {
-  color:  #ef5350; /* 文字颜色 */
-  background-color: #ffebee; /* 浅红色背景 */
+  color:  #ef5350;
+  background-color: #ffebee;
 }
 
-
-/* 用户信息区域样式 */
-.user-info {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 10px;
-}
-
-/* 新增按钮样式 */
 .action-buttons {
   display: flex;
   justify-content: space-around;
@@ -408,10 +393,10 @@ const handleUpdateUserInfo = () => {
 }
 
 .accept-btn {
-  background-color: #4caf50; /* 绿色 */
+  background-color: #4caf50;
 }
 
 .reject-btn {
-  background-color: #f44336; /* 红色 */
+  background-color: #f44336;
 }
 </style>
