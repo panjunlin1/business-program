@@ -241,12 +241,11 @@ const handleReject = async () => {
 
 // 假设在某个操作后需要传递 userData 回列表页
 const handleUpdateUserInfo = () => {
-  // 1. 假设 userData 已更新（例如：userData.value.userPhone = '139xxxx'）
+  // 1. 假设 userData 已更新（例如：userData.value.userPhone = '139x'）
   console.log('准备传递的 userData:', userData.value);
 
   // 2. 触发事件，传递数据
   uni.$emit('sendUserDataToOrder', userData.value);
-
 };
 
 </script>
