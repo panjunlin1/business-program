@@ -259,7 +259,7 @@ const renderChart = () => {
             options.series[0].data.length > 0) {
           try {
             // 确保在创建新实例前没有旧实例
-            if (!chartInstance && uCharts) {
+            if (!chartInstance) {
               console.log('uCharts 类型:', typeof uCharts);
               console.log('uCharts 内容:', uCharts);
               console.log('Canvas Context:', canvasContext);
@@ -279,40 +279,14 @@ const renderChart = () => {
 
               console.log('即将使用的图表配置:', chartOptions);
 
-              if (typeof uCharts === 'function') {
-                // uCharts 是构造函数
-                console.log('使用 new uCharts() 方式创建图表');
-                chartInstance = new uCharts(chartOptions);
-                console.log('使用 new uCharts() 创建图表成功');
-              } else if (typeof uCharts === 'object' && uCharts.default && typeof uCharts.default === 'function') {
-                // uCharts 有 default 导出且是构造函数
-                console.log('使用 new uCharts.default() 方式创建图表');
-                chartInstance = new uCharts.default(chartOptions);
-                console.log('使用 new uCharts.default() 创建图表成功');
-              } else if (typeof uCharts === 'object' && typeof uCharts.init === 'function') {
-                // uCharts 有 init 方法
-                console.log('使用 uCharts.init() 方式创建图表');
-                chartInstance = uCharts.init(chartOptions);
-                console.log('使用 uCharts.init() 创建图表成功');
-              } else if (typeof uCharts === 'function') {
-                // 直接调用 uCharts 函数
-                console.log('使用 uCharts() 方式创建图表');
-                chartInstance = uCharts(chartOptions);
-                console.log('使用 uCharts() 创建图表成功');
-              } else {
-                console.error('uCharts 格式不正确，无法初始化:', typeof uCharts, uCharts);
-                errorMsg.value = '图表库格式不正确';
-                return;
-              }
-              console.log('图表创建完成');
+              // 在 uni-app 中使用 uCharts 的正确方式
+              console.log('使用 new uCharts() 方式创建图表');
+              chartInstance = new uCharts(chartOptions);
+              console.log('使用 new uCharts() 创建图表成功');
             } else {
-              console.log('chartInstance:', chartInstance, 'uCharts:', uCharts);
+              console.log('chartInstance:', chartInstance);
               if (chartInstance) {
                 console.warn('图表实例已存在');
-              }
-              if (!uCharts) {
-                console.error('uCharts 未定义');
-                errorMsg.value = '图表库未正确加载';
               }
             }
           } catch (error) {
