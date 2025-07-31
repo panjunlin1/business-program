@@ -210,32 +210,50 @@ const renderChart = () => {
             name: '净利润',
             data: seriesData,
             color: '#409eff',
-            pointShape: 'none' // 明确指定点形状
+            pointShape: 'circle',
+            pointSize: 4,
+            lineWidth: 2
           }],
           xAxis: {
-            disableGrid: true,
-            rotate: 30,
-            fontSize: 5, // 减小x轴字体
+            disableGrid: false,
+            gridColor: '#f0f0f0',
+            rotate: 0,
+            fontSize: 5,
+            fontColor: '#666666',
             itemGap: 2
           },
           yAxis: {
-            format: (val: number) => val.toFixed(2) + '元',
+            format: (val: number) => val.toFixed(0) + '元',
             min: 0,
-            fontSize: 10 // 减小y轴字体
+            fontSize: 5,
+            fontColor: '#666666',
+            gridColor: '#f0f0f0',
+            gridType: 'dash',
+            dashLength: 4
           },
           width: canvasWidth,
           height: canvasHeight,
           pixelRatio: uni.getSystemInfoSync().pixelRatio || 1,
-          dataLabel: false,
+          dataLabel: true,
           dataPointShape: true,
-          animation: false,
-          fontSize: 5, // 减小整体字体
+          animation: true,
+          fontSize: 5,
+          background: '#ffffff',
+          enableScroll: false,
           extra: {
             line: {
-              type: 'straight',
-              width: 1 // 减小线条宽度
+              type: 'curve',
+              width: 2
             }
-          }
+          },
+          legend: {
+            show: true,
+            position: 'top',
+            float: 'right', // 将图例浮动到右侧
+            fontSize: 5,
+            fontColor: '#333333'
+          },
+          padding: [15, 10, 10, 5]
         };
 
         // 销毁之前的图表实例
@@ -391,7 +409,7 @@ onMounted(() => {
           :id="canvasId"
           :canvas-id="canvasId"
           class="chart-canvas"
-          style="width: 100%; height: 300px;"
+          style="width: 100%; height: 450px; margin: 10px 0;"
           @tap="tap"
           @touchstart="touchStart"
           @touchmove="touchMove"
@@ -403,19 +421,25 @@ onMounted(() => {
         <div class="summary-item">
           <div class="summary-label">最高利润</div>
           <div class="summary-value">
-            {{ Math.max(...tenDayData.map(item => item.netProfit)).toFixed(2) }} 元
+            ¥{{ Math.max(...tenDayData.map(item => item.netProfit)).toFixed(2) }}
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-label">最低利润</div>
           <div class="summary-value">
-            {{ Math.min(...tenDayData.map(item => item.netProfit)).toFixed(2) }} 元
+            ¥{{ Math.min(...tenDayData.map(item => item.netProfit)).toFixed(2) }}
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-label">平均利润</div>
           <div class="summary-value">
-            {{ (tenDayData.reduce((sum, item) => sum + item.netProfit, 0) / tenDayData.length).toFixed(2) }} 元
+            ¥{{ (tenDayData.reduce((sum, item) => sum + item.netProfit, 0) / tenDayData.length).toFixed(2) }}
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">总利润</div>
+          <div class="summary-value">
+            ¥{{ tenDayData.reduce((sum, item) => sum + item.netProfit, 0).toFixed(2) }}
           </div>
         </div>
       </div>
@@ -431,29 +455,32 @@ onMounted(() => {
 
 <style scoped>
 .profit-chart-container {
-  padding: 16px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  margin: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .chart-header {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .chart-title {
-  color: #303133;
-  font-size: 18px;
-  font-weight: 600;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
   text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .chart-subtitle {
-  color: #909399;
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
   text-align: center;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .loading-state, .error-state {
@@ -461,8 +488,10 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
-  gap: 12px;
+  height: 400px;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
 }
 
 .error-state {
@@ -472,21 +501,26 @@ onMounted(() => {
 .chart-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .chart-canvas {
-  border: 1px solid #f0f0f0;
   border-radius: 8px;
-  background-color: #fafafa;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .data-summary {
   display: flex;
   justify-content: space-between;
-  background-color: #f5f7fa;
-  border-radius: 8px;
-  padding: 12px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f4 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
 }
 
 .summary-item {
@@ -494,29 +528,58 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   flex: 1;
+  padding: 12px;
+}
+
+.summary-item:not(:last-child) {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .summary-label {
-  color: #909399;
-  font-size: 12px;
-  margin-bottom: 4px;
+  color: #606266;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .summary-value {
   color: #303133;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* 响应式设计 */
-@media (max-width: 375px) {
+@media (max-width: 768px) {
+  .profit-chart-container {
+    padding: 16px;
+    margin: 16px;
+  }
+
+  .chart-title {
+    font-size: 20px;
+  }
+
+  .chart-subtitle {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
   .profit-chart-container {
     padding: 12px;
     margin: 12px;
   }
 
   .chart-title {
-    font-size: 16px;
+    font-size: 18px;
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
   }
 
   .data-summary {
@@ -527,10 +590,25 @@ onMounted(() => {
   .summary-item {
     flex-direction: row;
     justify-content: space-between;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .summary-item:last-child {
+    border-bottom: none;
   }
 
   .summary-label, .summary-value {
-    font-size: 13px;
+    font-size: 14px;
+  }
+
+  .loading-state, .error-state {
+    height: 300px;
+  }
+
+  .chart-wrapper {
+    gap: 16px;
+    padding: 12px;
   }
 }
 </style>
