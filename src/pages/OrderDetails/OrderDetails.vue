@@ -338,10 +338,6 @@ const handleUpdateUserInfo = () => {
   font-size: 16px;
 }
 
-.product-list {
-  /* 已有样式，若需调整可在此补充，保持和 info-card 一致即可 */
-}
-
 .product-item {
   display: flex;
   justify-content: space-between;

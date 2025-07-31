@@ -20,7 +20,7 @@
           v-for="(order, index) in filteredOrders"
           :key="order.shopid + '_' + order.id"
       >
-        <!-- 原有点击展开区域 -->
+        <!-- 点击展开区域 -->
         <view class="order-header" @click="toggleOrderDetail(order.id)">
           <view class="header-left">
             <text class="order-id">订单ID: {{ order.id }}</text>
@@ -38,7 +38,7 @@
           ></image>
         </view>
 
-        <!-- 原有总价区域 - 添加点击事件 -->
+        <!-- 总价区域 - 添加点击事件 -->
         <view class="order-total" @click="toggleOrderDetail(order.id)">
           <text class="total-label">总价:</text>
           <text class="total-amount">¥{{ order.totalprice }}</text>
@@ -60,12 +60,12 @@
           </view>
         </view>
 
-        <!-- 新增订单分隔线（不影响功能） -->
+        <!-- 新增订单分隔线 -->
         <view class="order-divider" v-if="index !== filteredOrders.length - 1"></view>
       </view>
     </view>
 
-    <!-- 原有加载、错误、空状态 -->
+    <!-- 加载、错误、空状态 -->
     <view class="loading-container" v-if="loading">...</view>
     <view class="error-container" v-if="error">...</view>
     <view class="empty-container" v-if="!loading && !error && orderList.length === 0">...</view>
@@ -253,15 +253,6 @@ const filteredOrders = computed(() => {
   transform: rotate(180deg); /* 展开时箭头向上旋转 */
 }
 
-/* 订单卡片间距与边框强化 */
-.order-card {
-  margin-bottom: 24rpx;
-  border: 1rpx solid #ECECEC;
-  border-radius: 8rpx;
-  background-color: #FFFFFF;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.02);
-}
-
 .order-header {
   display: flex;
   justify-content: space-between;
@@ -366,7 +357,7 @@ const filteredOrders = computed(() => {
 /* 新增视觉区分样式 */
 /* 订单卡片间距与边框强化 */
 .order-card {
-  margin-bottom: 24rpx;
+  margin-bottom: 30rpx;
   border: 1rpx solid #ECECEC;
   border-radius: 8rpx;
   background-color: #FFFFFF;
@@ -375,7 +366,7 @@ const filteredOrders = computed(() => {
 
 /* 新增分隔线（最后一个订单不显示） */
 .order-divider {
-  height: 12rpx;
+  height: 40rpx;
   background-color: #FAFAFA;
   border-top: 1rpx solid #ECECEC;
 }
