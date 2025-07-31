@@ -65,6 +65,12 @@
 			"style": {
 				"navigationBarTitleText": "材料订单"
 			}
+		},
+		{
+			"path": "pages/MaterialSelect/ordering",
+			"style": {
+				"navigationBarTitleText": "支付"
+			}
 		}
 	],
 	"globalStyle": {

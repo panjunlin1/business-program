@@ -255,34 +255,64 @@ const handlePay = async () => {
       content: `需支付 ¥${totalPrice.value.toFixed(2)} ，是否继续？`,
       success: async (res) => {
         if (res.confirm) {
-          // 4. 发送数据到后端
-          const payRes = await uni.request({
-            url: `${baseUrl}/mat/submit`,
-            method: 'POST',
-            data: submitData,
-            header: {
-              'Content-Type': 'application/json'
-            }
-          });
-
-          console.log('后端支付响应:', payRes);
-
-          // 5. 处理支付结果
-          if (payRes.statusCode === 200 && payRes.data.code === 200) {
-            // 支付成功：清空购物车并提示
-            sidebarMenus.value.forEach(menu => {
-              menu.materials.forEach(material => {
-                material.quantity = 0;
-              });
-            });
-            showCart.value = false;
-            await uni.showToast({ title: '支付成功', icon: 'success' });
-          } else {
-            await uni.showToast({
-              title: payRes.data.msg || '支付失败',
-              icon: 'none'
-            });
+          const userInfo = wx.getStorageSync('userinfo')
+          if (!userInfo || !userInfo.openid) {
+            wx.showToast({ title: '请先登录', icon: 'none' })
+            return
           }
+
+          wx.request({
+            url: 'https://qb111pq526416.vicp.fun/api/pay/create', // ← 替换成你的后端接口地址
+            method: 'POST',
+            data: {
+              openid: userInfo.openid,
+              total: 1,
+              description: '菜品材料'
+            },
+            success(res) {
+              const payData = res.data.data
+              console.log("payData:"+payData)
+              wx.requestPayment({
+                timeStamp: payData.timeStamp,
+                nonceStr: payData.nonceStr,
+                package: payData.package,
+                signType: payData.signType,
+                paySign: payData.paySign,
+                async success() {
+                  wx.showToast({title: '支付成功'})
+                  // 4. 发送数据到后端
+                  const payRes = await uni.request({
+                    url: `${baseUrl}/mat/submit`,
+                    method: 'POST',
+                    data: submitData,
+                    header: {
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  console.log('后端支付响应:', payRes);
+                },
+                fail() {
+                  wx.showToast({ title: '支付失败', icon: 'none' })
+                  console.error("支付失败", res)
+                }
+              })
+              console.log(payData) // 检查 timeStamp, nonceStr, package, paySign 是否齐全
+            },
+            fail(err) {
+              console.error('发起支付失败', err)
+              wx.showToast({ title: '支付请求失败', icon: 'none' })
+            }
+          })
+
+          // // 4. 发送数据到后端
+          // const payRes = await uni.request({
+          //   url: `${baseUrl}/mat/submit`,
+          //   method: 'POST',
+          //   data: submitData,
+          //   header: {
+          //     'Content-Type': 'application/json'
+          //   }
+          // });
         }
       }
     });
