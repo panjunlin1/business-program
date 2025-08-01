@@ -2,7 +2,7 @@
 import {ref, onMounted, nextTick, onUnmounted, getCurrentInstance} from 'vue'
 import {baseUrl} from "@/router";
 // 直接导入 uCharts
-import uCharts from '../../static/u-charts/u-charts';
+import uCharts from '../../static/u-charts/u-charts.js';
 
 // 从本地缓存获取 userEntity
 const getUserEntityFromStorage = () => {
@@ -256,12 +256,13 @@ const renderChart = () => {
           padding: [15, 10, 10, 5]
         };
 
-        // 销毁之前的图表实例
+        // 清理之前的图表实例
         if (chartInstance) {
           try {
-            chartInstance.destroy();
+            // uCharts 没有提供 destroy 方法，我们只需要将引用设为 null
+            chartInstance = null;
           } catch (e) {
-            console.error('销毁旧图表实例时出错:', e);
+            console.error('清理旧图表实例时出错:', e);
           }
           chartInstance = null; // 确保清空引用
         }
@@ -299,7 +300,11 @@ const renderChart = () => {
 
               // 在 uni-app 中使用 uCharts 的正确方式
               console.log('使用 new uCharts() 方式创建图表');
-              chartInstance = new uCharts(chartOptions);
+              // 确保使用默认导出的构造函数
+              // ES6 模块的默认导出在某些环境下可能需要通过 .default 属性访问，而直接使用模块引用可
+              // 能不是构造函数本身。通过使用 uCharts.default || uCharts，我们可以兼容两种情况，
+              // 确保获取到正确的构造函数。
+              chartInstance = new (uCharts.default || uCharts)(chartOptions);
               console.log('使用 new uCharts() 创建图表成功');
             } else {
               console.log('chartInstance:', chartInstance);
@@ -360,7 +365,7 @@ const touchEnd = (e: any) => {
 onUnmounted(() => {
   if (chartInstance) {
     try {
-      chartInstance.destroy();
+      chartInstance = null;
     } catch (e) {
       console.error('组件卸载时销毁图表实例出错:', e);
     } finally {
