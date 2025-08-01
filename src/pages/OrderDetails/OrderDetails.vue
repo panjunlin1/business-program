@@ -112,6 +112,7 @@ const request = (url, method = 'GET', data = {}) => {
         'Content-Type': 'application/json'
       },
       success: (res) => {
+        console.log('请求成功，响应数据:', res);
         if (res.data.code === 200) {
           resolve(res.data.data); // 只返回数据部分
           console.log("aaaaa:",res.data.data);
@@ -119,7 +120,10 @@ const request = (url, method = 'GET', data = {}) => {
           reject(new Error(res.data.msg || '请求失败'));
         }
       },
-      fail: (err) => reject(new Error('网络请求失败：' + err.errMsg))
+      fail: (err) => {
+        console.error('网络请求失败:', err);
+        reject(new Error('网络请求失败：' + err.errMsg));
+      }
     });
   });
 };
@@ -206,12 +210,56 @@ const updateOrderStatus = (orderId, newStatus) => {
   });
 };
 
+// 新增：打印订单接口
+const printOrder = (orderId) => {
+  const printUrl = `${baseUrl}/api/orders/${orderId}/print`;
+
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: printUrl,
+      method: 'POST',
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': uni.getStorageSync('token') // 添加认证信息
+      },
+      success: (res) => {
+        console.log('打印接口请求成功，响应:', res);
+        // 即使状态码不是200，也可能需要处理
+        if (res.statusCode === 200) {
+          if (res.data.code === 200) {
+            resolve(res.data.data);
+          } else {
+            reject(new Error(res.data.msg || '打印失败: ' + JSON.stringify(res.data)));
+          }
+        } else {
+          reject(new Error(`打印接口HTTP错误: ${res.statusCode}, 响应: ${JSON.stringify(res)}`));
+        }
+      },
+      fail: (err) => {
+        console.error('打印接口请求失败:', err);
+        reject(new Error('打印请求失败: ' + err.errMsg));
+      }
+    });
+  });
+};
+
 // 新增：接受订单逻辑
 const handleAccept = async () => {
   try {
-    await updateOrderStatus(order.value.id, '2'); // 调用接口修改状态为“已接取”
+    // 先调用接受订单接口
+    await updateOrderStatus(order.value.id, '2'); // 调用接口修改状态为"已接取"
     order.value.status = '2'; // 本地更新状态（无需重新请求接口）
-    await uni.showToast({title: '订单已接受', icon: 'success'});
+
+    // 然后调用打印接口
+    try {
+      await printOrder(order.value.id);
+      await uni.showToast({title: '订单已接受并发送打印', icon: 'success'});
+    } catch (printErr) {
+      console.error('打印请求失败:', printErr);
+      // 即使打印失败，也不影响接受订单的操作
+      await uni.showToast({title: '订单已接受，打印失败', icon: 'none'});
+    }
+
     // 返回列表页并触发刷新
     setTimeout(() => {
       uni.navigateBack({

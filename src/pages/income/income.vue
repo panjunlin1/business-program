@@ -104,39 +104,62 @@ onMounted(() => {
 
 <template>
   <div class="income-container">
-    <h1>收入统计</h1>
-
-    <div class="card">
-      <h2>日净利润</h2>
-      <div class="amount">¥{{ (dailyNetProfit || 0).toLocaleString() }}</div>
-      <div class="comparison"
-           :class="{
-             positive: Number(dailyDiff) > 0,
-             negative: Number(dailyDiff) < 0
-           }">
-        较昨日 {{ dailyDiff }}% {{ Number(dailyDiff) > 0 ? '↑' : '↓' }}
-      </div>
+    <div class="header">
+      <h1 class="page-title">收入统计</h1>
+      <div class="header-divider"></div>
     </div>
 
-    <div class="card">
-      <h2>月净利润</h2>
-      <div class="amount">¥{{ (monthlyNetProfit || 0).toLocaleString() }}</div>
-      <div class="comparison"
-           :class="{
-             positive: Number(monthlyDiff) > 0,
-             negative: Number(monthlyDiff) < 0
-           }">
-        较上月 {{ monthlyDiff }}% {{ Number(monthlyDiff) > 0 ? '↑' : '↓' }}
+    <div class="stats-grid">
+      <div class="card daily-card">
+        <div class="card-icon">
+          <uni-icons type="compose" size="24" color="#ffffff"></uni-icons>
+        </div>
+        <div class="card-content">
+          <h2 class="card-title">日净利润</h2>
+          <div class="amount">¥{{ (dailyNetProfit || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</div>
+          <div class="comparison"
+               :class="{
+                 positive: Number(dailyDiff) > 0,
+                 negative: Number(dailyDiff) < 0,
+                 neutral: Number(dailyDiff) === 0
+               }">
+            <uni-icons :type="Number(dailyDiff) > 0 ? 'arrow-up' : (Number(dailyDiff) < 0 ? 'arrow-down' : 'arrow-right')"
+                       :color="Number(dailyDiff) > 0 ? '#4caf50' : (Number(dailyDiff) < 0 ? '#f44336' : '#9e9e9e')"
+                       size="14"></uni-icons>
+            较昨日 {{ dailyDiff }}%
+          </div>
+        </div>
+      </div>
+
+      <div class="card monthly-card">
+        <div class="card-icon">
+          <uni-icons type="calendar" size="24" color="#ffffff"></uni-icons>
+        </div>
+        <div class="card-content">
+          <h2 class="card-title">月净利润</h2>
+          <div class="amount">¥{{ (monthlyNetProfit || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</div>
+          <div class="comparison"
+               :class="{
+                 positive: Number(monthlyDiff) > 0,
+                 negative: Number(monthlyDiff) < 0,
+                 neutral: Number(monthlyDiff) === 0
+               }">
+            <uni-icons :type="Number(monthlyDiff) > 0 ? 'arrow-up' : (Number(monthlyDiff) < 0 ? 'arrow-down' : 'arrow-right')"
+                       :color="Number(monthlyDiff) > 0 ? '#4caf50' : (Number(monthlyDiff) < 0 ? '#f44336' : '#9e9e9e')"
+                       size="14"></uni-icons>
+            较上月 {{ monthlyDiff }}%
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div>
+  <div class="chart-section">
     <ai />
   </div>
-    <div>
-      <TenDayProfitChart />
-    </div>
+  <div class="chart-section">
+    <TenDayProfitChart />
+  </div>
 </template>
 
 <style scoped>
@@ -146,27 +169,108 @@ onMounted(() => {
   padding: 20px;
 }
 
-h1 {
+.header {
   text-align: center;
   margin-bottom: 30px;
 }
 
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.header-divider {
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #409eff, #64b5f6);
+  margin: 0 auto;
+  border-radius: 2px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
 .card {
-  background: white;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 16px;
   padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+
+.daily-card::before {
+  background: linear-gradient(90deg, #409eff, #64b5f6);
+}
+
+.monthly-card::before {
+  background: linear-gradient(90deg, #7e57c2, #9575cd);
+}
+
+.card-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.daily-card .card-icon {
+  background: linear-gradient(135deg, #409eff, #64b5f6);
+}
+
+.monthly-card .card-icon {
+  background: linear-gradient(135deg, #7e57c2, #9575cd);
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #666666;
+  margin: 0 0 8px 0;
 }
 
 .amount {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 26px;
+  font-weight: 700;
   margin: 10px 0;
+  color: #333333;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
 .comparison {
-  font-size: 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
 }
 
 .positive {
@@ -175,5 +279,65 @@ h1 {
 
 .negative {
   color: #f44336;
+}
+
+.neutral {
+  color: #9e9e9e;
+}
+
+.chart-section {
+  margin-bottom: 20px;
+}
+
+.chart-section:last-child {
+  margin-bottom: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .income-container {
+    padding: 15px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .amount {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .income-container {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .card-icon {
+    width: 45px;
+    height: 45px;
+    margin-right: 12px;
+  }
+
+  .card-title {
+    font-size: 15px;
+  }
+
+  .amount {
+    font-size: 20px;
+  }
+
+  .comparison {
+    font-size: 13px;
+  }
 }
 </style>
