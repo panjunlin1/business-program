@@ -31,7 +31,7 @@
         >
           <image
               class="material-img"
-              :src="item.img"
+              src="/static/icon/abc.jpg"
               mode="aspectFill"
           ></image>
           <view class="material-info">
@@ -82,7 +82,7 @@
       <view class="cart-popup-content">
         <view class="cart-popup-header">
           <text class="cart-popup-title">我的购物车</text>
-          <image class="close-icon" src="/static/close.png" @click="toggleCart"></image>
+          <image class="close-icon" src="/static/icon/abc.jpg" @click="toggleCart"></image>
         </view>
         <view class="cart-items">
           <view class="cart-item"
@@ -124,18 +124,25 @@ import { baseUrl } from '@/router';
 
 // 左侧导航菜单及对应食材数据
 const sidebarMenus = ref([
-  { title: '新品', materials: [] },
   { title: '肉类', materials: [] },
-  { title: '青菜', materials: [] },
+  { title: '蔬菜', materials: [] },
   { title: '海鲜', materials: [] },
+  { title: '调料', materials: [] },
+  { title: '粉类', materials: [] },
+  { title: '主食', materials: [] },
+  { title: '其它', materials: [] },
 ]);
 
 // 分类映射表
 const categoryMap = {
-  '新品': 0,
-  '肉类': 1,
-  '青菜': 2,
-  '海鲜': 3,
+  0: 0,
+  1: 1,
+  2: 2,
+  3: 3,
+  4: 4,
+  5: 5,
+  6: 6,
+  7: 7
 };
 
 const currentTab = ref(0);
@@ -162,7 +169,8 @@ onMounted(() => {
 
           // 将接口数据按分类填充到 sidebarMenus
           materials.forEach(material => {
-            const categoryIndex = categoryMap[material.category] || 0;
+            console.log(material.status)
+            const categoryIndex = categoryMap[material.status] || 0;
             if (sidebarMenus.value[categoryIndex]) {
               sidebarMenus.value[categoryIndex].materials.push(material);
             } else {
@@ -303,7 +311,7 @@ const handlePay = async () => {
             method: 'POST',
             data: {
               openid: userInfo.openid,
-              total: 1,
+              total: totalPrice.value.toFixed(2),
               description: '菜品材料'
             },
             success(res) {
@@ -412,15 +420,21 @@ const goHome = () => {
   flex: 1;
   margin-left: 200rpx;
   box-sizing: border-box;
-  padding-bottom: 120rpx;
+  padding-bottom: 20rpx;
 }
+
 .top-bar {
+  display: flex;
+  align-items: center;
   margin-bottom: 20rpx;
 }
+
 .top-title {
+  padding-top: 8px;
+  padding-left: 47%;
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: black;
 }
 
 /* 材料列表 */

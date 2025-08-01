@@ -12,14 +12,6 @@
             <span class="label">订单号：</span>
             <span class="span">{{ order.id }}</span>
           </div>
-          <div class="data-pair">
-            <span class="label">联系电话：</span>
-            <span class="span">{{ userData.userPhone }}</span>
-          </div>
-          <div class="data-pair">
-            <span class="label">下单时间：</span>
-            <span class="span time-text">{{ order.ordertime }}</span>
-          </div>
         </div>
         <div class="order-f1">
           <div class="data-pair">
@@ -34,16 +26,28 @@
             </span>
           </div>
           <div class="data-pair">
-            <span class="label">用餐方式：</span>
-            <span class="span">{{ order.diningChoice }}</span>
+            <span class="label">总价：</span>
+            <span class="span totalPrice-tag">{{ order.totalprice }}￥</span>
           </div>
+        </div>
+        <div class="order-f1">
           <div class="data-pair">
             <span class="label">支付方式：</span>
             <span class="span">{{ order.paymentmethod }}</span>
           </div>
           <div class="data-pair">
-            <span class="label">总价：</span>
-            <span class="span totalPrice-tag">{{ order.totalprice }}￥</span>
+            <span class="label">用餐方式：</span>
+            <span class="span">{{ order.diningChoice }}</span>
+          </div>
+        </div>
+        <div class="order-f1">
+          <div class="data-pair">
+            <span class="label">联系电话：</span>
+            <span class="span">{{ userData.userPhone }}</span>
+          </div>
+          <div class="data-pair">
+            <span class="label">下单时间：</span>
+            <span class="span time-text">{{ order.ordertime }}</span>
           </div>
         </div>
       </div>
@@ -275,40 +279,41 @@ const handleUpdateUserInfo = () => {
 
 /* 订单部分信息样式 */
 .order-item {
-  display: flex;
+  display: block;
   font-size: 20px;
+
 }
 
 .order-f1 {
-  width: 140px;
+  width: 100%;
   height: 100%;
-  padding: 30px;
+  padding-top: 20px;
+  padding-left: 10px;
+  left: 0;
   margin-bottom: 10px;
-  font-size: 10px;
-  display: flex;
-  flex-direction: column;
+
 }
 
 .data-pair {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 5px;
-  min-height: 24px;
+  display: table;         /* 模拟表格 */
+  width: 100%;            /* 占满父容器 */
+  margin-bottom: 12px;
+  min-height: 25px;
+  font-size: 15px;
+}
+
+.label, .span {
+  display: table-cell;    /* 模拟单元格 */
 }
 
 .label {
+  width: 80px;
+  text-align: left;
   font-weight: bold;
-  color: #333;
-  margin-right: 5px;
-  min-width: 50px;
-  padding-top: 2px;
 }
 
 .span {
-  padding-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
 }
 
 .order-info-item {
@@ -328,9 +333,10 @@ const handleUpdateUserInfo = () => {
 }
 
 .time-text {
+  text-align: center;
   white-space: normal;
   word-wrap: break-word;
-  width: 100px;
+
 }
 
 .info-value {
