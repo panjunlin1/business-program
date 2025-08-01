@@ -1,69 +1,72 @@
-// v-for="order in orders"是循环指令用来遍历orders数组，使用order.id作为唯一标识
-// @click="handleOrderClick(order.id)：给框添加一个点击事件，并传递当前订单的ID
 <template>
-  <div class="button">
-    <button class="button-ton" @click="a1">全部</button>
-    <button class="button-ton" @click="a2">已接取</button>
-    <button class="button-ton" @click="a3">待接取</button>
-    <button class="button-ton" @click="a4">已完成</button>
-  </div>
+  <div class="page-container">
+    <div class="button">
+      <button class="button-ton" @click="a1">全部</button>
+      <button class="button-ton" @click="a2">已接取</button>
+      <button class="button-ton" @click="a3">待接取</button>
+      <button class="button-ton" @click="a4">已完成</button>
+    </div>
 
-  <!-- 未登录时跳转到登录页 -->
-  <div v-if="!isLogin && !loading" class="login-tip" @click="navigateToLogin">
-    请先登录查看订单
-  </div>
+    <!-- 未登录时跳转到登录页 -->
+    <div v-if="!isLogin && !loading" class="login-tip" @click="navigateToLogin">
+      请先登录查看订单
+    </div>
 
-  <!-- 加载中提示 -->
-  <div v-if="loading" class="login-tip">加载中...</div>
+    <!-- 加载中提示 -->
+    <div v-if="loading" class="login-tip">加载中...</div>
 
-  <!-- 已登录但无订单 -->
-  <div v-if="isLogin && filteredOrder.length === 0 && !loading" class="login-tip">暂无订单数据</div>
+    <!-- 已登录但无订单 -->
+    <div v-if="isLogin && filteredOrder.length === 0 && !loading" class="login-tip">暂无订单数据</div>
 
-  <!-- 订单列表 -->
-  <div v-else-if="isLogin" v-for="order in filteredOrder" :key="order.id" class="order-box" @click="handleOrderClick(order.id,order.userid)">
-    <div class="order-item">
-      <div class="order-f1">
-        <div class="data-pair">
-          <span class="label">客户ID：</span>
-          <span class="span">{{ order.userid}}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">订单号：</span>
-          <span class="span">{{ order.id }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">联系电话：</span>
-          <span class="span">{{ userPhoneMap.get(order.userid) || '点击查看详情' }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">下单时间：</span>
-          <span class="span time-text">{{ order.ordertime }}</span>
-        </div>
-      </div>
-      <div class="order-f1">
-        <div class="data-pair">
-          <span class="label">状态：</span>
-          <span class="span status-tag" :class="{
-            'status-2': order.status === '2',
-            'status-4': order.status === '4',
-            'status-5': order.status === '5',
-            'status-6': order.status === '6',
-            'status-8': order.status === '8'
-          }">
-            {{ getStatusText(order.status) }}
-          </span>
-        </div>
-        <div class="data-pair">
-          <span class="label">用餐方式：</span>
-          <span class="span">{{ order.diningChoice }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">支付方式：</span>
-          <span class="span">{{ order.paymentmethod }}</span>
-        </div>
-        <div class="data-pair">
-          <span class="label">总价：</span>
-          <span class="span">{{ order.totalprice }}</span>
+
+    <!-- 订单列表 -->
+    <div v-else-if="isLogin" class="order-list">
+      <div v-for="order in filteredOrder" :key="order.id" class="order-card" @click="handleOrderClick(order.id,order.userid)">
+        <div class="order-item">
+          <div class="order-f1">
+            <div class="data-pair">
+              <span class="label">客户ID：</span>
+              <span class="span">{{ order.userid}}</span>
+            </div>
+            <div class="data-pair">
+              <span class="label">订单号：</span>
+              <span class="span">{{ order.id }}</span>
+            </div>
+            <div class="data-pair">
+              <span class="label">联系电话：</span>
+              <span class="span">{{ userPhoneMap.get(order.userid) || '点击查看详情' }}</span>
+            </div>
+            <div class="data-pair">
+              <span class="label">下单时间：</span>
+              <span class="span time-text">{{ order.ordertime }}</span>
+            </div>
+          </div>
+          <div class="order-f1">
+            <div class="data-pair">
+              <span class="label">状态：</span>
+              <span class="span status-tag" :class="{
+                'status-2': order.status === '2',
+                'status-4': order.status === '4',
+                'status-5': order.status === '5',
+                'status-6': order.status === '6',
+                'status-8': order.status === '8'
+              }">
+                {{ getStatusText(order.status) }}
+              </span>
+            </div>
+            <div class="data-pair">
+              <span class="label">用餐方式：</span>
+              <span class="span">{{ order.diningChoice }}</span>
+            </div>
+            <div class="data-pair">
+              <span class="label">支付方式：</span>
+              <span class="span">{{ order.paymentmethod }}</span>
+            </div>
+            <div class="data-pair">
+              <span class="label">总价：</span>
+              <span class="span">{{ order.totalprice }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -251,20 +254,33 @@ const handleOrderClick = (orderId: string, userId: string) => {
   });
 };
 
+// 导航到登录页（补充缺失的函数）
+const navigateToLogin = () => {
+  uni.navigateTo({
+    url: '/pages/login/login' // 假设登录页路径
+  });
+};
 </script>
 
 
 <style scoped>
+/* 页面容器样式 */
+.page-container {
+  background-color: #f5f7fa; /* 页面背景色，与订单卡片形成对比 */
+  min-height: 100vh;
+  padding-bottom: 30rpx;
+}
+
 /* 状态框 */
 .button {
   display: flex;
-  margin-bottom: 20rpx;
   background-color: #fff;
   padding: 20rpx;
   justify-content: center; /* 水平居中 */
   align-items: center; /* 垂直居中 */
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
 }
-
 
 .button-ton {
   font-size: 15px;
@@ -275,103 +291,128 @@ const handleOrderClick = (orderId: string, userId: string) => {
   position: relative;
   padding: 10rpx 0; /* 增加内边距，扩大点击区域 */
   margin: 0 5rpx; /* 按钮之间增加间距 */
+  background: none;
+  border: none;
 }
 
-/* 订单框 */
-.order-box {
-  display: flex;
-  flex-direction: row;
-  height: 165px;
-  border: 2px solid #000;
-  margin: 10rpx 0; /* 按钮之间增加间距 */
+/* 按钮点击反馈（小程序兼容） */
+.button-ton:active {
+  transform: scale(0.95);
+  background-color: #f8f8f8;
+  border-radius: 8rpx;
 }
 
-/* 订单部分信息样式 */
+/* 订单列表容器 */
+.order-list {
+  padding: 0 20rpx;
+}
+
+/* 订单卡片容器：每个订单合并为一个独立卡片 */
+.order-card {
+  background-color: #ffffff; /* 白色背景与页面背景形成对比 */
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 明显的阴影增强立体感 */
+  margin-bottom: 50rpx;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* 订单卡片点击效果 */
+.order-card:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+/* 订单内容 */
 .order-item {
-  display: flex;
-  font-size: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 两列布局 */
+  padding: 50rpx;
 }
 
-/* 信息排列方式 */
+/* 左右分栏 */
 .order-f1 {
-  width: 150px;
-  height: 100%;
-  padding: 30px;
-  margin-bottom: 10px;
-  font-size: 10px;
   display: flex;
   flex-direction: column;
 }
 
-/* 新增数据对容器样式 */
+/* 数据项容器 */
 .data-pair {
   display: flex;
-  align-items: flex-start; /* 顶部对齐 */
-  margin-bottom: 5px;
-  min-height: 24px; /* 确保每一行有最小高度 */
+  align-items: center;
+  margin-bottom: 14rpx;
+  padding: 10rpx;
 }
 
-/* 新增标签样式 */
+/* 最后一个数据对去除底部间距 */
+.data-pair:last-child {
+  margin-bottom: 0;
+}
+
+/* 标签样式 */
 .label {
   font-weight: bold;
-  color: #333;
-  margin-right: 5px;
-  min-width: 50px; /* 确保标签宽度一致，排版整齐 */
-  padding-top: 2px; /* 微调标签位置 */
+  min-width: 120rpx; /* 固定标签宽度，确保对齐 */
+  font-size: 24rpx;
+  color: #555;
 }
 
-.time-text {
-  white-space: normal;
-  word-wrap: break-word;
-  width: 100px; /* 按需调整，比如让时间在一定宽度内换行 */
-}
-
-/* 信息文本处理 */
+/* 内容样式 */
 .span {
-  padding-top: 2px; /* 与标签对齐 */
-  white-space: nowrap; /* 禁止文本换行 */
-  overflow: hidden; /* 隐藏溢出部分 */
-  text-overflow: ellipsis; /* 显示省略号 */
+  font-weight: bold;
+  font-size: 24rpx;
+  color: #555;
+  flex: 1;
+  text-align: center; /* 内容靠右对齐 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-
-/* 已接取状态样式 */
-.status-tag.status-2 {
-  color: #ffb74d; /* 文字颜色 */
-  background-color: #fff8e1; /* 浅黄色背景 */
+/* 状态标签 */
+.status-tag {
+  padding: 6rpx 14rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 1;
 }
 
-/* 待接取状态样式 */
-.status-tag.status-4 {
-  color:  #ef5350; /* 文字颜色 */
-  background-color: #ffebee; /* 浅红色背景 */
+/* 状态色值 */
+.status-2 {
+  color: #FFA726;
+  background-color: #FFF3E0;
+}
+.status-4 {
+  color: #42A5F5;
+  background-color: #E3F2FD;
+}
+.status-5 {
+  color: #757575;
+  background-color: #EEEEEE;
+}
+.status-6 {
+  color: #66BB6A;
+  background-color: #E8F5E9;
+}
+.status-8 {
+  color: #EF5350;
+  background-color: #FFEBEE;
 }
 
-/* 已取消状态样式 */
-.status-tag.status-5 {
-  color:  #9e9e9e; /* 文字颜色 */
-  background-color: #f5f5f5; /* 浅灰色背景 */
+/* 时间文本 */
+.time-text {
+  color: #555;
+  font-size: 22rpx;
+  text-align: right;
 }
 
-/* 已完成状态样式 */
-.status-tag.status-6 {
-  color: #4caf50; /* 文字颜色 */
-  background-color: #f1f8e9; /* 浅绿色背景 */
-}
-
-.status-tag.status-8 {
-  color:  #ef5350; /* 文字颜色 */
-  background-color: #ffebee; /* 浅红色背景 */
-}
-
-/* 提示文本样式 */
+/* 空状态提示 */
 .login-tip {
   text-align: center;
-  padding: 50rpx;
-  color: #666;
-  font-size: 16px;
-  /* 如果想让提示在垂直方向更靠下，可结合margin-top等调整：
-  margin-top: auto; 会把提示推到容器底部 */
-  margin-top: 60%;
+  padding: 80rpx 20rpx;
+  color: #999;
+  font-size: 26rpx;
+  margin-top: 40%;
 }
 </style>
+    

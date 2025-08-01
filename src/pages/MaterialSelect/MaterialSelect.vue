@@ -85,15 +85,28 @@
           <image class="close-icon" src="/static/close.png" @click="toggleCart"></image>
         </view>
         <view class="cart-items">
-          <view
-              class="cart-item"
-              v-for="(item, index) in selectedMaterials"
-              :key="index"
-          >
+          <view class="cart-item"
+                v-for="(item, index) in selectedMaterials"
+                :key="index">
+            <!-- 左侧商品信息 -->
             <view class="cart-item-left">
               <text class="cart-item-name">{{ item.materialName }}</text>
               <text class="cart-item-desc">¥{{ item.materialPrice }} × {{ item.quantity }}</text>
             </view>
+            <!-- 中间偏右数量操作 -->
+            <view class="cart-item-middle">
+            <view class="quantity-box">
+              <button class="quantity-btn" @click="handleCartMinus(index)">-</button>
+              <input
+                  type="number"
+                  class="quantity-input"
+                  :value="item.quantity"
+                  @input="handleCartInput(index, $event)"
+              />
+              <button class="quantity-btn" @click="handleCartPlus(index)">+</button>
+            </view>
+          </view>
+            <!-- 最右边价格 -->
             <text class="cart-item-total">¥{{ (item.materialPrice * item.quantity).toFixed(2) }}</text>
           </view>
           <view class="cart-empty" v-if="selectedMaterials.length === 0">
@@ -214,6 +227,29 @@ const handleInput = (menuIndex, materialIndex, e) => {
   }
 };
 
+// 购物车弹窗内的数量操作方法
+const handleCartMinus = (index) => {
+  const item = selectedMaterials.value[index];
+  if (item.quantity > 0) {
+    item.quantity--;
+  }
+};
+
+const handleCartPlus = (index) => {
+  const item = selectedMaterials.value[index];
+  item.quantity++;
+};
+
+const handleCartInput = (index, e) => {
+  const value = parseInt(e.detail.value);
+  const item = selectedMaterials.value[index];
+  if (!isNaN(value) && value >= 0) {
+    item.quantity = value;
+  } else {
+    item.quantity = 0;
+  }
+};
+
 // 切换购物车显示
 const toggleCart = () => {
   showCart.value = !showCart.value;
@@ -239,6 +275,7 @@ const handlePay = async () => {
     const submitData = {
       merchantId: merchantId,
       totalPrice: totalPrice.value,
+      currentTime: new Date().toLocaleString('zh', { hour12: false }).replaceAll('/', '-'),
       materials: selectedMaterials.value.map(item => ({
         id: item.id,
         materialName: item.materialName,
@@ -255,34 +292,54 @@ const handlePay = async () => {
       content: `需支付 ¥${totalPrice.value.toFixed(2)} ，是否继续？`,
       success: async (res) => {
         if (res.confirm) {
-          // 4. 发送数据到后端
-          const payRes = await uni.request({
-            url: `${baseUrl}/mat/submit`,
-            method: 'POST',
-            data: submitData,
-            header: {
-              'Content-Type': 'application/json'
-            }
-          });
-
-          console.log('后端支付响应:', payRes);
-
-          // 5. 处理支付结果
-          if (payRes.statusCode === 200 && payRes.data.code === 200) {
-            // 支付成功：清空购物车并提示
-            sidebarMenus.value.forEach(menu => {
-              menu.materials.forEach(material => {
-                material.quantity = 0;
-              });
-            });
-            showCart.value = false;
-            await uni.showToast({ title: '支付成功', icon: 'success' });
-          } else {
-            await uni.showToast({
-              title: payRes.data.msg || '支付失败',
-              icon: 'none'
-            });
+          const userInfo = wx.getStorageSync('userinfo')
+          if (!userInfo || !userInfo.openid) {
+            wx.showToast({ title: '请先登录', icon: 'none' })
+            return
           }
+
+          wx.request({
+            url: 'https://qb111pq526416.vicp.fun/api/pay/create', // ← 替换成你的后端接口地址
+            method: 'POST',
+            data: {
+              openid: userInfo.openid,
+              total: 1,
+              description: '菜品材料'
+            },
+            success(res) {
+              const payData = res.data.data
+              console.log("payData:"+payData)
+              wx.requestPayment({
+                timeStamp: payData.timeStamp,
+                nonceStr: payData.nonceStr,
+                package: payData.package,
+                signType: payData.signType,
+                paySign: payData.paySign,
+                async success() {
+                  wx.showToast({title: '支付成功'})
+                  // 4. 发送数据到后端
+                  const payRes = await uni.request({
+                    url: `${baseUrl}/mat/submit`,
+                    method: 'POST',
+                    data: submitData,
+                    header: {
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  console.log('后端支付响应:', payRes);
+                },
+                fail() {
+                  wx.showToast({ title: '支付失败', icon: 'none' })
+                  console.error("支付失败", res)
+                }
+              })
+              console.log(payData) // 检查 timeStamp, nonceStr, package, paySign 是否齐全
+            },
+            fail(err) {
+              console.error('发起支付失败', err)
+              wx.showToast({ title: '支付请求失败', icon: 'none' })
+            }
+          })
         }
       }
     });
@@ -404,30 +461,6 @@ const goHome = () => {
   font-weight: bold;
 }
 
-/* 数量操作 */
-.quantity-box {
-  display: flex;
-  align-items: center;
-}
-.quantity-btn {
-  width: 40rpx;
-  height: 40rpx;
-  line-height: 40rpx;
-  text-align: center;
-  border: 1px solid #ccc;
-  border-radius: 6rpx;
-  margin: 0 10rpx;
-  font-size: 32rpx;
-  padding: 0;
-}
-.quantity-input {
-  width: 60rpx;
-  text-align: center;
-  font-size: 28rpx;
-  border: 1px solid #ccc;
-  border-radius: 6rpx;
-}
-
 /* 底部购物车栏 */
 .bottom-cart-bar {
   position: fixed;
@@ -441,7 +474,10 @@ const goHome = () => {
   align-items: center;
   justify-content: space-between;
   padding: 0 20rpx;
+  /* 关键：设置高 z-index ，让底部栏始终在最上层 */
+  z-index: 1000;
 }
+
 .cart-info {
   display: flex;
   align-items: center;
@@ -484,9 +520,11 @@ const goHome = () => {
 /* 购物车弹窗 */
 .cart-popup {
   position: fixed;
-  bottom: 0;
+  /* 调整 bottom ，让弹窗在底部栏上方（假设底部栏高 100rpx ） */
+  bottom: 100rpx;
   left: 0;
   right: 0;
+  /* 弹窗层级低于底部栏，这样底部栏不会被覆盖 */
   z-index: 999;
 }
 .cart-popup-mask {
@@ -494,8 +532,11 @@ const goHome = () => {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* 同样，遮罩也不覆盖底部栏 */
+  bottom: 100rpx;
   background-color: rgba(0, 0, 0, 0.3);
+  /* 让遮罩可点击关闭弹窗 */
+  pointer-events: auto;
 }
 .cart-popup-content {
   position: relative;
@@ -504,6 +545,9 @@ const goHome = () => {
   border-top-right-radius: 30rpx;
   padding: 20rpx;
   animation: slide-up 0.3s ease;
+  max-height: 40vh;
+  /* 内容区域可滚动，且层级继承父级（低于底部栏） */
+  overflow-y: auto;
 }
 .cart-popup-header {
   display: flex;
@@ -520,21 +564,19 @@ const goHome = () => {
   height: 40rpx;
 }
 .cart-items {
-  max-height: 400rpx;
+  max-height: unset;
   overflow-y: auto;
 }
+
 .cart-item {
   display: flex;
+  /* 关键：让三个区域自动分配空间，左侧固定，中间挤到右侧，右侧价格固定 */
   justify-content: space-between;
   align-items: center;
   padding: 15rpx 0;
   border-bottom: 1px solid #f5f5f5;
 }
-.cart-item-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
+
 .cart-item-name {
   font-size: 28rpx;
   font-weight: bold;
@@ -544,16 +586,69 @@ const goHome = () => {
   font-size: 26rpx;
   color: #666;
 }
-.cart-item-total {
-  font-size: 30rpx;
-  color: #f44336;
-  font-weight: bold;
-}
+
 .cart-empty {
   text-align: center;
   padding: 40rpx 0;
   color: #999;
   font-size: 28rpx;
+}
+
+/* 左侧商品信息：固定宽度，确保数量操作区域位置稳定 */
+.cart-item-left {
+  width: 35%; /* 占父容器 35% ，可调整 */
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.cart-item-middle {
+  flex: 0 0 40%; /* 固定宽度，占父容器 40% 左右 */
+  margin-left: auto; /* 关键：让中间区域“挤”到右侧，形成“四分之三位置”视觉效果 */
+  display: flex;
+  justify-content: flex-end; /* 让按钮靠右，和价格区域对齐 */
+}
+
+.quantity-box {
+  display: flex;
+  align-items: center;
+}
+
+.quantity-btn {
+  /* 按钮基础样式 */
+  width: 60rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  border: 1px solid #dcdcdc; /* 浅灰色边框 */
+  border-radius: 12rpx; /* 更大圆角，更柔和 */
+  margin: 0 10rpx;
+  font-size: 36rpx;
+  padding: 0;
+  background-color: #f8f8f8; /* 浅灰色背景 */
+  color: #333; /* 文字颜色 */
+  /* 点击反馈 */
+  transition: all 0.2s ease;
+}
+
+/* 按钮点击态 */
+.quantity-btn:active {
+  background-color: #eaeaea;
+  transform: scale(0.95);
+}
+.quantity-input {
+  width: 60rpx;
+  text-align: center;
+  font-size: 28rpx;
+  border: 1px solid #ccc;
+  border-radius: 6rpx;
+}
+.cart-item-total {
+  width: 25%; /* 占父容器 25% ，可调整 */
+  text-align: right;
+  font-size: 30rpx;
+  color: #f44336;
+  font-weight: bold;
 }
 
 /* 购物车弹窗动画 */

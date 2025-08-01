@@ -110,6 +110,7 @@ const onGotUserInfo = (e: { detail: { errMsg: string; userInfo: any } }) => {
     userInfo.value = e.detail.userInfo;
     setStorage('userinfo', e.detail.userInfo)
         .then(() => {
+          console.log('userinfo 存储成功，数据为:', userInfo.value);
           showDialogBtn();
         })
         .catch(() => {
@@ -209,6 +210,15 @@ const getPhoneNumber = async (e: any) => {
       method: 'POST',
       data: { code: loginRes.code }
     });
+
+    setStorage('userinfo', authRes.data.data)
+        .then(() => {
+          console.log('userinfo 存储成功，数据为:', authRes.data.data);
+          showDialogBtn();
+        })
+        .catch(() => {
+          // 存储失败时可以选择不弹出弹窗
+        });
 
     if (authRes.data.code !== 200 || !authRes.data.data) {
       throw new Error('获取 openid 失败');
