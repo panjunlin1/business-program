@@ -153,9 +153,21 @@ const renderChart = () => {
         const xAxisData = sortedData.map(item => {
           // 确保日期存在并格式化
           if (!item.date) return '未知日期';
-          // 格式化日期为"日"（如 19日、20日）
-          const parts = item.date.split('-');
-          return parts.length === 3 ? parts[2]  : item.date;
+          // 修复日期格式化问题，确保正确处理各种日期格式
+          try {
+            const date = new Date(item.date);
+            if (isNaN(date.getTime())) {
+              // 如果日期无效，返回原始值
+              return item.date;
+            }
+            // 格式化日期为"月-日"（如 8-15、8-16）
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}-${day}`;
+          } catch (e) {
+            // 出现异常时返回原始值
+            return item.date;
+          }
         });
 
         const seriesData = sortedData.map(item => {
@@ -217,13 +229,18 @@ const renderChart = () => {
           xAxis: {
             disableGrid: false,
             gridColor: '#f0f0f0',
-            rotate: 0,
+            rotateLabel:true,
+            marginTop: 5,
             fontSize: 5,
             fontColor: '#666666',
-            itemGap: 2
+            itemGap: 10,
           },
           yAxis: {
-            format: (val: number) => val.toFixed(0) + '元',
+            format: (val: number) => {
+              // 添加对数值的验证
+              if (isNaN(val)) return '0元';
+              return val.toFixed(0) + '元';
+            },
             min: 0,
             fontSize: 5,
             fontColor: '#666666',
@@ -300,11 +317,8 @@ const renderChart = () => {
 
               // 在 uni-app 中使用 uCharts 的正确方式
               console.log('使用 new uCharts() 方式创建图表');
-              // 确保使用默认导出的构造函数
-              // ES6 模块的默认导出在某些环境下可能需要通过 .default 属性访问，而直接使用模块引用可
-              // 能不是构造函数本身。通过使用 uCharts.default || uCharts，我们可以兼容两种情况，
-              // 确保获取到正确的构造函数。
-              chartInstance = new (uCharts.default || uCharts)(chartOptions);
+              // 修复：直接使用 uCharts 而不是 uCharts.default
+              chartInstance = new uCharts(chartOptions);
               console.log('使用 new uCharts() 创建图表成功');
             } else {
               console.log('chartInstance:', chartInstance);
@@ -390,6 +404,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- 模板部分保持不变 -->
   <div class="profit-chart-container">
     <div class="chart-header">
       <div class="chart-title">十日利润趋势</div>
@@ -426,25 +441,25 @@ onMounted(() => {
         <div class="summary-item">
           <div class="summary-label">最高利润</div>
           <div class="summary-value">
-            ¥{{ Math.max(...tenDayData.map(item => item.netProfit)).toFixed(2) }}
+            ¥{{ Math.max(...tenDayData.map(item => item.netProfit || 0)).toFixed(2) }}
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-label">最低利润</div>
           <div class="summary-value">
-            ¥{{ Math.min(...tenDayData.map(item => item.netProfit)).toFixed(2) }}
+            ¥{{ Math.min(...tenDayData.map(item => item.netProfit || 0)).toFixed(2) }}
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-label">平均利润</div>
           <div class="summary-value">
-            ¥{{ (tenDayData.reduce((sum, item) => sum + item.netProfit, 0) / tenDayData.length).toFixed(2) }}
+            ¥{{ (tenDayData.reduce((sum, item) => sum + (item.netProfit || 0), 0) / tenDayData.length).toFixed(2) }}
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-label">总利润</div>
           <div class="summary-value">
-            ¥{{ tenDayData.reduce((sum, item) => sum + item.netProfit, 0).toFixed(2) }}
+            ¥{{ tenDayData.reduce((sum, item) => sum + (item.netProfit || 0), 0).toFixed(2) }}
           </div>
         </div>
       </div>
