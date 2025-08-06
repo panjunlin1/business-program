@@ -312,15 +312,6 @@ const handleAccept = async () => {
     await updateOrderStatus(currentDetailOrder.value.id, 2); // 调用接口修改状态为“已接取”
     currentDetailOrder.value.status = 2; // 本地更新状态（无需重新请求接口）
     await uni.showToast({title: '订单已接受', icon: 'success'});
-    // 返回列表页并触发刷新
-    setTimeout(() => {
-      uni.navigateBack({
-        success: () => {
-          // 通过事件通知列表页刷新
-          uni.$emit('refreshOrderList');
-        }
-      });
-    }, 500);
   } catch (err) {
     await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
   }
@@ -332,11 +323,7 @@ const handleReject = async () => {
     await updateOrderStatus(currentDetailOrder.value.id, 3); // 调用接口修改状态为“已取消”
     currentDetailOrder.value.status = 3; // 本地更新状态
     await uni.showToast({title: '订单已拒绝', icon: 'none'});
-    uni.navigateBack({
-      success: () => {
-        uni.$emit('refreshOrderList');
-      }
-    });
+
   } catch (err) {
     await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
   }
