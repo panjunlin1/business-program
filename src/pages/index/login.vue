@@ -181,6 +181,11 @@ const onshow = async (openidVal: string, userInfoVal: any, phoneNumberVal: strin
       loginstate.value = "1";
       await setStorage("loginstate", "1");
 
+      // 如果返回中有token，则存储token
+      if (res.data.data.token) {
+        await setStorage("token", res.data.data.token);
+      }
+
       // 跳转页面
       await uni.switchTab({
         url: '/pages/my/my'
@@ -238,6 +243,11 @@ const getPhoneNumber = async (e: any) => {
     });
 
     if (decryptRes.data.code !== 200 || !decryptRes.data.data) {
+      console.error('解密手机号失败:', decryptRes);
+      uni.showToast({
+        title: '解密手机号失败',
+        icon: 'none'
+      });
       throw new Error('解密手机号失败');
     }
 

@@ -125,14 +125,9 @@ const checkLoginStatus = () => {
 const loadOrders = async () => {
   try {
     loading.value = true;
-    const token = uni.getStorageSync('token');
     const res = await uni.request({
       url: `${baseUrl}/api/orders`,
-      method: 'GET',
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
+      method: 'GET'
     });
 
     if (res.data.code === 200 && res.data.data) {
