@@ -110,7 +110,8 @@ const request = (url, method = 'GET', data = {}) => {
       method,
       data,
       header: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'token': uni.getStorageSync('token') // 添加认证token
       },
       success: (res) => {
         console.log('请求成功，响应数据:', res);
