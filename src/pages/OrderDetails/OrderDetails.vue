@@ -17,6 +17,7 @@
           <div class="data-pair">
             <span class="label">状态：</span>
             <span class="span status-tag" :class="{
+              'status-1': order.status === '1',
               'status-2': order.status === '2',
               'status-4': order.status === '4',
               'status-5': order.status === '5',
@@ -82,7 +83,7 @@
     </div>
 
     <!-- 新增：状态操作按钮 -->
-    <div class="action-buttons" v-if="order.status === '4'">
+    <div class="action-buttons" v-if="order.status === '1' || order.status === '4'">
       <button class="btn accept-btn" @click="handleAccept">接受订单</button>
       <button class="btn reject-btn" @click="handleReject">拒绝订单</button>
     </div>
@@ -192,6 +193,7 @@ onLoad(async (options) => {
 });
 
 const statusMap = {
+  '1': '已支付',
   '2': '已接取',
   '4': '待接取',
   '5': '已取消',
@@ -397,6 +399,11 @@ const handleUpdateUserInfo = () => {
   justify-content: space-between;
   padding: 8px 0;
   border-bottom: 1px dashed #eee;
+}
+
+.status-tag.status-1 {
+  color:  #ef5350;
+  background-color: #ffebee;
 }
 
 .status-tag.status-2 {

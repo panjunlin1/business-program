@@ -45,6 +45,7 @@
             <div class="data-pair">
               <span class="label">状态：</span>
               <span class="span status-tag" :class="{
+                'status-1': order.status === '1',
                 'status-2': order.status === '2',
                 'status-4': order.status === '4',
                 'status-5': order.status === '5',
@@ -206,6 +207,7 @@ onUnload(() => {
 
 // 订单状态文本映射
 const statusMap = {
+  '1': '已支付',
   '2': '已接取',
   '4': '待接取',
   '5': '已取消',
@@ -240,7 +242,7 @@ const filteredOrder = computed(() => {
 // 筛选按钮事件
 const a1 = () => { currentStatus.value = ''; }; // 全部
 const a2 = () => { currentStatus.value = '2'; }; // 已接取
-const a3 = () => { currentStatus.value = '4'; }; // 待接取
+const a3 = () => { currentStatus.value = '1,4'; }; // 待接取
 const a4 = () => { currentStatus.value = '5,6,8'; }; // 已完成
 
 
@@ -378,6 +380,10 @@ const navigateToLogin = () => {
 }
 
 /* 状态色值 */
+.status-1 {
+  color: #FFA726;
+  background-color: #FFF3E0;
+}
 .status-2 {
   color: #FFA726;
   background-color: #FFF3E0;

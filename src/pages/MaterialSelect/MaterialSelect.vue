@@ -307,7 +307,7 @@ const handlePay = async () => {
           }
 
           wx.request({
-            url: 'https://qb111pq526416.vicp.fun/api/pay/create', // ← 替换成你的后端接口地址
+            url: 'https://pjl.juntaitec.cn/api/pay/create', // ← 替换成你的后端接口地址
             method: 'POST',
             data: {
               openid: userInfo.openid,
@@ -316,7 +316,7 @@ const handlePay = async () => {
             },
             success(res) {
               const payData = res.data.data
-              console.log("payData:"+payData)
+              console.log("payData:",payData)
               wx.requestPayment({
                 timeStamp: payData.timeStamp,
                 nonceStr: payData.nonceStr,
