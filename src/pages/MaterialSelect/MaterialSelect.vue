@@ -306,9 +306,16 @@ const handlePay = async () => {
             return
           }
 
+          const token = uni.getStorageSync('token');
+          console.log('使用的token:', token);
+
           wx.request({
             url: 'https://pjl.juntaitec.cn/api/pay/create', // ← 替换成你的后端接口地址
             method: 'POST',
+            header: {
+              'Content-Type': 'application/json',
+              'token': token // 假设是 Bearer 认证方式，按实际后端要求调整
+            },
             data: {
               openid: userInfo.openid,
               total: totalPrice.value.toFixed(2),
