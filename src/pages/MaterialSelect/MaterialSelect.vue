@@ -310,7 +310,7 @@ const handlePay = async () => {
           console.log('使用的token:', token);
 
           wx.request({
-            url: 'https://pjl.juntaitec.cn/api/pay/create', // ← 替换成你的后端接口地址
+            url: `${baseUrl}/api/pay/create`, // ← 替换成你的后端接口地址
             method: 'POST',
             header: {
               'Content-Type': 'application/json',
@@ -323,6 +323,7 @@ const handlePay = async () => {
             },
             success(res) {
               const payData = res.data.data
+              console.log("res:",res)
               console.log("payData:",payData)
               wx.requestPayment({
                 timeStamp: payData.timeStamp,
