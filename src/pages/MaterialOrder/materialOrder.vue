@@ -286,7 +286,7 @@ const updateOrderStatus = (orderId, newStatus) => {
       method: 'POST',
       header: {
         'Content-Type': 'application/json',
-        'Authorization': uni.getStorageSync('token')
+         'token': uni.getStorageSync('token') // 添加认证token
       },
       data: { status: newStatus,
       id: orderId

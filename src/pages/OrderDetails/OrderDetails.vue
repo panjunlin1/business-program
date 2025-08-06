@@ -213,9 +213,33 @@ const updateOrderStatus = (orderId, newStatus) => {
   });
 };
 
+// 获取认证token的函数
+const getAuthToken = () => {
+  try {
+    const token = uni.getStorageSync('token');
+    if (!token) {
+      console.warn('Token不存在，请重新登录');
+      return null;
+    }
+    console.log('获取到的token:', token); // 调试信息
+    return token;
+  } catch (error) {
+    console.error('获取token失败:', error);
+    return null;
+  }
+};
+
 // 新增：打印订单接口
 const printOrder = (orderId) => {
   const printUrl = `${baseUrl}/api/orders/${orderId}/print`;
+
+  // 获取认证token
+  const token = getAuthToken();
+
+  // 检查token是否存在
+  if (!token) {
+    return Promise.reject(new Error('未找到认证令牌，请重新登录'));
+  }
 
   return new Promise((resolve, reject) => {
     wx.request({
@@ -223,7 +247,7 @@ const printOrder = (orderId) => {
       method: 'POST',
       header: {
         'Content-Type': 'application/json',
-        'Authorization': uni.getStorageSync('token') // 添加认证信息
+        'token': token // 使用标准Bearer格式
       },
       success: (res) => {
         console.log('打印接口请求成功，响应:', res);
@@ -234,6 +258,9 @@ const printOrder = (orderId) => {
           } else {
             reject(new Error(res.data.msg || '打印失败: ' + JSON.stringify(res.data)));
           }
+        } else if (res.statusCode === 401) {
+          // 特别处理401错误
+          reject(new Error('认证失败，请重新登录'));
         } else {
           reject(new Error(`打印接口HTTP错误: ${res.statusCode}, 响应: ${JSON.stringify(res)}`));
         }
@@ -259,8 +286,13 @@ const handleAccept = async () => {
       await uni.showToast({title: '订单已接受并发送打印', icon: 'success'});
     } catch (printErr) {
       console.error('打印请求失败:', printErr);
-      // 即使打印失败，也不影响接受订单的操作
-      await uni.showToast({title: '订单已接受，打印失败', icon: 'none'});
+      // 特别处理认证错误
+      if (printErr.message.includes('认证失败') || printErr.message.includes('未找到认证令牌')) {
+        await uni.showToast({title: '认证失败，请重新登录', icon: 'none'});
+      } else {
+        // 即使打印失败，也不影响接受订单的操作
+        await uni.showToast({title: '订单已接受，打印失败', icon: 'none'});
+      }
     }
 
     // 返回列表页并触发刷新
@@ -272,9 +304,10 @@ const handleAccept = async () => {
           uni.$emit('refreshOrderList');
         }
       });
-    }, 500);
+    }, 1500);
   } catch (err) {
-    await uni.showToast({title: '操作失败：' + err.message, icon: 'none'});
+    console.error('接受订单失败:', err);
+    await uni.showToast({title: '接受订单失败', icon: 'none'});
   }
 };
 
