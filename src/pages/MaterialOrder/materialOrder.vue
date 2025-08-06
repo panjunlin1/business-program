@@ -165,10 +165,6 @@ const fetchOrders = async () => {
     uni.request({
       url: `${baseUrl}/api/materialOrders/${shopid}`,
       method: 'GET',
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': uni.getStorageSync('token')
-      },
       success: (res) => {
         if (res.statusCode === 200) {
           if (res.data.code === 200 && res.data.data) {
